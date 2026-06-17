@@ -97,6 +97,24 @@ class TestShelfDownloadService(unittest.TestCase):
         self.assertEqual([task.jm_id for task in started], ['211899', '123456'])
         self.assertIsNotNone(app)
 
+    def test_download_page_title_uses_separate_row_from_start_button(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication, QHBoxLayout
+        from qfluentwidgets import TitleLabel
+        from jmcomic_shelf.ui.download_page import DownloadPage
+
+        app = QApplication.instance() or QApplication([])
+        page = DownloadPage()
+        main_layout = page.layout()
+
+        self.assertIsInstance(main_layout.itemAt(0).widget(), TitleLabel)
+        action_row = main_layout.itemAt(1).layout()
+        self.assertIsInstance(action_row, QHBoxLayout)
+        self.assertIs(action_row.itemAt(action_row.count() - 1).widget(), page.start_button)
+        self.assertIsNot(main_layout.itemAt(0).widget(), page.start_button)
+        self.assertIsNotNone(app)
+
     def test_download_page_resets_progress_when_all_tasks_finish(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 

@@ -1,5 +1,33 @@
 ﻿# Development Log
 
+## 2026-06-18 07:08:52 +08:00
+
+### 修改范围
+
+- 禁漫下载页顶部排版微调。
+- 桌面端下载页布局回归测试。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/download_page.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `development-log.md`
+
+### 具体内容
+
+- 将禁漫下载页标题从标题和按钮同一行调整为独立一行。
+- 将说明文字与“开始下载”按钮放到标题下方同一行，说明文字在左，按钮在右。
+- 新增下载页布局测试，约束标题独立成行，开始按钮位于第二行右侧。
+- 本次只调整已有下载页局部排版，不改变功能、文件结构或用户工作流；已检查 README、`AGENTS.md`、项目专属 Skill、spec 和 plan，无需同步更新。
+
+### 验证情况
+
+- 已按 TDD 先新增失败测试 `test_download_page_title_uses_separate_row_from_start_button`，确认当前标题和按钮同一行时失败。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_download_service.TestShelfDownloadService.test_download_page_title_uses_separate_row_from_start_button -v`，通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，26 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py`，通过。
+- 已运行 offscreen `MainWindow` 初始化烟测，确认窗口可创建。
+
 ## 2026-06-18 06:47:04 +08:00
 
 ### 修改范围

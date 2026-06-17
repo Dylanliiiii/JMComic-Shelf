@@ -65,6 +65,9 @@ class DownloadPage(QWidget):
 
         note = BodyLabel('先到设置页选择下载目录和 jmcomic-option.yml；这里可一次输入多个 JM 号，失败后可点击重试。', self)
         note.setWordWrap(True)
+        title = header.takeAt(0).widget()
+        header.takeAt(0)
+        header.insertWidget(0, note, 1)
 
         self.input = TextEdit(self)
         self.input.setPlaceholderText('输入一个或多个 JM 号，可用空格、逗号或换行分隔')
@@ -88,8 +91,8 @@ class DownloadPage(QWidget):
         self.status = QLabel('', self)
         self.status.setWordWrap(True)
 
+        layout.addWidget(title)
         layout.addLayout(header)
-        layout.addWidget(note)
         layout.addWidget(self.input)
         layout.addWidget(self.progress)
         layout.addWidget(self.status)
