@@ -1,278 +1,177 @@
 <!-- 顶部标题 & 统计徽章 -->
 <div align="center">
-  <h1 style="margin-top: 0" align="center">Python API for JMComic</h1>
+  <h1 style="margin-top: 0" align="center">JMComic Shelf</h1>
 
   <p align="center">
-    <strong>简体中文</strong> •
-    <a href="./assets/readme/README-en.md">English</a> •
-    <a href="./assets/readme/README-jp.md">日本語</a> •
-    <a href="./assets/readme/README-kr.md">한국어</a>
+    <strong>简体中文</strong> ·
+    <a href="#english">English</a>
   </p>
 
   <p align="center">
-  <strong>提供 Python API 访问禁漫天堂（网页端 & 移动端），集成 GitHub Actions 下载器🚀</strong>
+    <strong>基于 JMComic-Crawler-Python 的个人漫画下载、PDF 转换与本地书库管理工具</strong>
   </p>
 
-[![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github)](https://github.com/hect0x7)
-[![Stars](https://img.shields.io/github/stars/hect0x7/JMComic-Crawler-Python?color=orange&label=stars&style=flat)](https://github.com/hect0x7/JMComic-Crawler-Python/stargazers)
-[![Forks](https://img.shields.io/github/forks/hect0x7/JMComic-Crawler-Python?color=green&label=forks&style=flat)](https://github.com/hect0x7/JMComic-Crawler-Python/forks)
-[![GitHub latest releases](https://img.shields.io/github/v/release/hect0x7/JMComic-Crawler-Python?color=blue&label=version)](https://github.com/hect0x7/JMComic-Crawler-Python/releases/latest)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/jmcomic?style=flat&color=hotpink)](https://pepy.tech/projects/jmcomic)
-[![Licence](https://img.shields.io/github/license/hect0x7/JMComic-Crawler-Python?color=red)](https://github.com/hect0x7/JMComic-Crawler-Python)
+[![GitHub](https://img.shields.io/badge/GitHub-Dylanliiiii%2FJMComic--Shelf-181717?logo=github)](https://github.com/Dylanliiiii/JMComic-Shelf)
+[![Upstream](https://img.shields.io/badge/Based%20on-hect0x7%2FJMComic--Crawler--Python-blue)](https://github.com/hect0x7/JMComic-Crawler-Python)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/github/license/hect0x7/JMComic-Crawler-Python?color=red)](https://github.com/hect0x7/JMComic-Crawler-Python)
 
 </div>
 
-
-> 本项目封装了一套可用于爬取JM的Python API.
-> 
-> 你可以通过简单的几行Python代码，实现下载JM上的本子到本地，并且是处理好的图片。
-> 
-> **🧭 快速指路**
-> - [教程：使用 GitHub Actions 下载禁漫本子](./assets/docs/sources/tutorial/1_github_actions.md)
-> - [教程：导出并下载你的禁漫收藏夹数据](./assets/docs/sources/tutorial/10_export_favorites.md)
-> - [教程：下载后转为 PDF / ZIP / 长图](./assets/docs/sources/tutorial/13_export_and_feature.md)
-> - [塔台广播：欢迎各位机长加入并贡献代码](./.github/CONTRIBUTING.md)
-> 
-> **友情提示：珍爱JM，为了减轻JM的服务器压力，请不要一次性爬取太多本子，西门🙏🙏🙏**.
-> 
-
+> JMComic Shelf 是一个个人向的漫画下载与整理工具。
+>
+> 本项目基于 [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python) 开源项目进行二次整理和功能扩展，保留其核心下载、解析、插件机制，并加入更偏向“本地书库管理”的自动化流程。
+>
+> 后续计划逐步封装为桌面应用，把当前命令行和脚本流程包装成更易用的图形界面。
 
 ![introduction.jpg](./assets/docs/sources/images/introduction.jpg)
 
+## 项目定位
 
-## 项目介绍
+原项目 `JMComic-Crawler-Python` 提供了完整的 JMComic Python API、命令行下载能力、图片解码、插件扩展和 PDF/ZIP/长图导出能力。
 
-本项目的核心功能是下载本子。
+本仓库在此基础上，主要面向个人本地收藏工作流做了整理：
 
-基于此，设计了一套方便使用、便于扩展，能满足一些特殊下载需求的框架。
+- 通过本地配置文件统一下载目录、登录、图片格式、并发和插件行为。
+- 下载完成后自动生成 PDF。
+- 自动维护一个 Markdown 总目录 `catalog.md`。
+- 总目录按作者分组，同一作品如果有多个作者，会在每个作者下面各登记一份索引。
+- 每条目录记录包含封面、标题、JM ID、链接、标签和章节。
+- 封面会以内嵌 base64 的方式写入 Markdown，方便把单个目录文件放到网盘、笔记软件或收藏网站中查看。
+- 针对 Windows 路径过长问题，章节目录默认使用短名称，例如 `第1章`。
+- 提供 Windows 双击脚本，减少手动输入 PowerShell 命令的成本。
 
-目前核心功能实现较为稳定，项目也处于维护阶段。
+## 当前改动
 
-除了下载功能以外，也实现了其他的一些禁漫接口，按需实现。目前已有功能：
+相比上游项目，本仓库当前主要修改集中在：
 
-- 登录
-- 搜索本子（支持所有搜索项）
-- 图片下载解码
-- 分类/排行榜
-- 本子/章节详情
-- 个人收藏夹
-- 接口加解密（APP的接口）
+- 新增 `catalog` 插件：下载完成后生成和更新本地 Markdown 书库目录。
+- `catalog.md` 使用作者分组，并支持作品去重更新。
+- 目录记录保留原站点返回的标题、作者和标签文本，不强制繁简转换。
+- 目录记录支持内嵌封面图，默认使用本次下载成功的第一章第一张图片作为封面。
+- 目录封面默认宽度为 `120`，可通过配置调整。
+- 下载路径规则调整为 `作者 / JM号-作品名 / 第N章`，避免长标题重复导致 Windows 路径过长。
+- 增加 Windows 批处理脚本：
+  - `download-jmcomic.bat`：输入 JM 号后下载。
+  - `view-jmcomic.bat`：输入 JM 号后查看详情。
+- 将本地敏感配置文件 `jmcomic-option.yml` 加入 `.gitignore`。
 
-## 安装教程
+## 使用方式
 
-> ⚠如果你没有安装过 Python，需要先前往 [Python 官网下载](https://www.python.org/downloads/) 再执行以下步骤。
->**推荐使用 Python 3.12及以上版本**
+### 1. 安装依赖
 
-* 通过pip官方源安装（推荐，并且更新也是这个命令）
+建议使用 Python 3.12 或以上版本。
 
-  ```shell
-  pip install jmcomic -U
-  ```
-* 通过源代码安装
-
-  ```shell
-  pip install git+https://github.com/hect0x7/JMComic-Crawler-Python
-  ```
-
-## 快速上手
-
-### 1. 下载本子方法
-
-只需要使用如下代码，就可以下载本子`JM123`的所有章节的图片：
-
-```python
-import jmcomic  # 导入此模块，需要先安装.
-jmcomic.download_album('123')  # 传入要下载的album的id，即可下载整个album到本地.
-
-# 也可以使用 Async API (详见教程: https://jmcomic.readthedocs.io/zh-cn/latest/tutorial/14_async_usage/)
-import asyncio
-asyncio.run(jmcomic.download_album_async('123'))
+```shell
+pip install -e .
+pip install img2pdf
 ```
 
-上面的 `download_album`方法还有一个参数`option`，可用于控制下载配置，配置包括禁漫域名、网络代理、图片格式转换、插件等等。
+如果只想使用上游包，也可以参考原项目文档：
 
-你可能需要这些配置项。推荐使用配置文件创建option，用option下载本子，见下章：
-
-### 2. 使用option配置来下载本子
-
-1. 首先，创建一个配置文件，假设文件名为 `option.yml`
-
-   该文件有特定的写法，你需要参考这个文档 → [配置文件指南](./assets/docs/sources/option_file_syntax.md)
-
-   下面做一个演示，假设你需要把下载的图片转为png格式，你应该把以下内容写进`option.yml`
-
-```yml
-download:
-  image:
-    suffix: .png # 该配置用于把下载的图片转为png格式
+```shell
+pip install jmcomic -U
 ```
 
-2. 第二步，运行下面的python代码
+### 2. 准备本地配置
 
-```python
-import jmcomic
+在项目根目录创建 `jmcomic-option.yml`。
 
-# 创建配置对象
-option = jmcomic.create_option_by_file('你的配置文件路径，例如 D:/option.yml')
-# 使用option对象来下载本子
-jmcomic.download_album(123, option)
-# 等价写法: option.download_album(123)
-```
+这个文件用于保存下载目录、账号登录、并发、PDF、目录插件等本地配置。它可能包含账号密码，因此不会提交到仓库。
 
-### 3. 使用命令行
-> 如果只想下载本子，使用命令行会比上述方式更加简单直接
-> 
-> 例如，在windows上，直接按下 win+R 键，输入`jmcomic xxx`就可以下载本子。
-
-示例：
-
-下载本子123的命令
-
-```sh
-jmcomic 123
-```
-同时下载本子123, 章节456的命令
-```sh
-jmcomic 123 p456
-```
-
-命令行模式也支持自定义option，你可以使用环境变量或者命令行参数：
-
-a. 通过命令行--option参数指定option文件路径
-
-```sh
-jmcomic 123 --option="D:/a.yml"
-```
-
-b. 配置环境变量 `JM_OPTION_PATH` 为option文件路径（推荐）
-
-> 请自行google配置环境变量的方式，或使用powershell命令:  `setx JM_OPTION_PATH "D:/a.yml"` 重启后生效
-
-```sh
-jmcomic 123
-```
-
-### 4. 查看本子详情（jmv 命令）
-
-> `jmv` 命令用于快速查看本子详情，不做下载。
-> 
-> **适用场景**：在某些网站上看到一串*神秘车号*，想快速看看具体是啥本子。此时只需copy原文本，按下 win+R，输入`jmv [粘贴内容]`即可
->
-> 支持从任意文本中提取数字作为车号，方便直接粘贴各种格式的车号。
-
-示例：
-
-```sh
-# 直接输入车号
-jmv 350234
-
-# 从混合文本中提取数字（提取出 350234）
-jmv 350谁还没看过234
-
-# 指定option文件（也支持环境变量，用法同上）
-jmv 350234 --option="D:/a.yml"
-
-# -y 参数：执行完毕后直接退出，无需按回车确认
-jmv 350234 -y
-```
-
-输出效果：
+当前个人工作流使用的下载目录结构大致为：
 
 ```text
-🔍 正在查询 禁漫车号 - [350234] 的详情...
-
-──────────────────────────────────────────────────
-  📖 标题:  xxx
-  🆔 ID:    JM350234
-  🔗 链接:  https://18comic.vip/album/350234/
-  ✍️ 作者:  Author1, Author2
-──────────────────────────────────────────────────
-  📅 发布日期:  2022-06-15
-  📅 更新日期:  2023-01-01
-  📄 总页数:    50
-  👀 观看:      2M
-  ❤️ 点赞:     77K
-  💬 评论:      9801
-──────────────────────────────────────────────────
-  🏷️ 标签:  标签1, 标签2, ...
-  🎭 人物:  角色A, 角色B, ...
-  📚 作品:  作品1, 作品2, ...
-──────────────────────────────────────────────────
-  📑 章节 (2):
-     第1話  上  (id: 350234)
-     第2話  下  (id: 350235)
-──────────────────────────────────────────────────
-
-[运行结束] 请按回车键关闭窗口... (下次运行可附加 -y 参数跳过确认)
+下载目录 / 作者 / JM号-作品名 / 第N章
 ```
 
+PDF 和 `catalog.md` 会生成在下载目录中。
 
+### 3. 双击脚本下载
 
-## 进阶使用
+Windows 下可以直接双击：
 
-请查阅文档首页 → [jmcomic.readthedocs.io](https://jmcomic.readthedocs.io/zh-cn/latest)
+```text
+download-jmcomic.bat
+```
 
-或者查看github仓库的文档 → [github-repo-docs](https://github.com/hect0x7/JMComic-Crawler-Python/blob/master/assets/docs/sources/tutorial/0_common_usage.md)
+然后输入一个或多个 JM 号，例如：
 
-（提示：jmcomic提供了很多下载配置项，大部分的下载需求你都可以尝试寻找相关配置项或插件来实现。）
+```text
+211899 123456
+```
 
-## 项目特点
+查看作品详情可以双击：
 
-- **绕过Cloudflare的反爬虫**
-- **实现禁漫APP接口最新的加解密算法 (1.6.3)**
-- 用法多样：
+```text
+view-jmcomic.bat
+```
 
-  - GitHub
-    Actions：网页上直接输入本子id就能下载（[教程：使用GitHub Actions下载禁漫本子](./assets/docs/sources/tutorial/1_github_actions.md)）
-  - 命令行：无需写Python代码，简单易用（[教程：使用命令行下载禁漫本子](./assets/docs/sources/tutorial/2_command_line.md)）
-  - Python代码：最本质、最强大的使用方式，需要你有一定的python编程基础
-- **支持 Async 和 Sync 两套 API**
-- 支持**网页端**和**移动端**两种客户端实现，可通过配置切换（**移动端不限ip兼容性好，网页端限制ip地区但效率高**）
-- 支持**自动重试和域名切换**机制
-- **可配置性强**
+### 4. 命令行下载
 
-  - 不配置也能使用，十分方便
-  - 配置可以从配置文件生成，支持多种文件格式
-  - 配置点有：`请求域名` `客户端实现` `是否使用磁盘缓存` `同时下载的章节/图片数量` `图片格式转换` `下载路径规则` `请求元信息（headers,cookies,proxies)` `中文繁/简转换` 
-    等
-- **可扩展性强**
+也可以直接使用命令行：
 
-  - 支持自定义本子/章节/图片下载前后的回调函数
-  - 支持自定义类：`Downloader（负责调度）` `Option（负责配置）` `Client（负责请求）` `实体类`等
-  - 支持自定义日志、异常监听器
-  - **支持Plugin插件，可以方便地扩展功能，以及使用别人的插件，目前核心内置插件有**：
-    - `登录插件`、`只下载新章插件`、`导出收藏夹为csv文件插件`
-    - `合并所有图片为pdf文件插件`、`合并所有图片为长图png插件`
-    - `压缩文件插件`、`自动获取浏览器cookies插件`、`订阅更新插件`等
+```shell
+jmcomic 211899 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+```
 
-## 使用小说明
+批量下载：
 
-* 推荐使用 **Python 3.12+**，目前最低兼容版本为3.9。
-  > 注意：Python 3.9 及更早版本皆已于 2025 年彻底结束官方生命周期 (EOL)，使用3.9及以下随时有可能遇到第三方库不兼容的问题。
+```shell
+jmcomic 211899 123456 654321 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+```
 
-* 个人项目，文档和示例会有不及时之处，可以Issue提问。
+## 目录文件
 
-## 项目文件夹介绍
+下载后会自动维护：
 
-* .github：GitHub Actions配置文件
-* assets：存放一些非代码的资源文件
+```text
+D:/Others/JMComic/catalog.md
+```
 
-  * docs：项目文档
-  * option：存放配置文件
-* src：存放源代码
+目录格式示例：
 
-  * jmcomic：`jmcomic`模块
-* tests：测试目录，存放测试代码，使用unittest
-* usage：用法目录，存放示例/使用代码
+```md
+# 作者名
 
-## 感谢以下项目
+1. <img src="data:image/jpeg;base64,..." alt="JM211899" width="120" style="vertical-align: top;">
 
-### 图片分割算法代码+禁漫移动端API
+   - 📖 标题：作品标题
+   - 🆔 ID：JM211899
+   - 🔗 链接：https://18comic.vip/album/211899/
+   - 🏷️ 标签：标签1, 标签2
+   - 📑 章节：第1话 作品标题 (id: 211899)
+```
 
-<a href="https://github.com/tonquer/JMComic-qt">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github-readme-stats.vercel.app/api/pin/?username=tonquer&repo=JMComic-qt&theme=radical" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github-readme-stats.vercel.app/api/pin/?username=tonquer&repo=JMComic-qt" />
-    <img alt="Repo Card" src="https://github-readme-stats.vercel.app/api/pin/?username=tonquer&repo=JMComic-qt" />
-  </picture>
-</a>
+封面图片直接嵌在 Markdown 文件里，因此单独上传 `catalog.md` 到其他地方时，图片也能跟着显示。
+
+## 后续计划
+
+- 将当前脚本流程封装为桌面应用。
+- 增加图形界面的下载任务管理。
+- 增加本地书库浏览、筛选、搜索和标签管理。
+- 增加配置向导，避免手写 YAML。
+- 增加下载失败重试、失败记录和重新补图入口。
+
+## 上游项目
+
+本项目基于以下开源项目修改：
+
+- [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python)
+
+感谢原作者提供稳定的核心 API、下载器和插件框架。本仓库主要用于个人本地书库工作流扩展，不替代上游项目。
+
+## English
+
+JMComic Shelf is a personal comic download and local library management tool based on [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python).
+
+This fork keeps the upstream downloader, parser and plugin architecture, while adding a local-library workflow:
+
+- automatic PDF generation,
+- an author-grouped Markdown catalog,
+- embedded cover images in `catalog.md`,
+- Windows-friendly helper scripts,
+- shorter chapter directory names to avoid long-path issues,
+- and a future path toward a small desktop app.
+
+Sensitive local configuration such as account credentials should stay in `jmcomic-option.yml`, which is intentionally ignored by Git.

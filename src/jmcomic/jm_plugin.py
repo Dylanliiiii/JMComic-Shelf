@@ -842,6 +842,347 @@ class Img2pdfPlugin(JmOptionPlugin):
             pdf.save(pdf_filepath, encryption=pikepdf.Encryption(user=password, owner=password))
 
 
+class CatalogPlugin(JmOptionPlugin):
+    plugin_key = 'catalog'
+
+    title_prefix = 'JM'
+    icon_title = '📖'
+    icon_id = '🆔'
+    icon_link = '🔗'
+    icon_tags = '🏷️'
+    icon_chapters = '📑'
+    field_cover = '封面：'
+    field_title = '标题：'
+    field_id = 'ID：'
+    field_link = '链接：'
+    field_tags = '标签：'
+    field_chapters = '章节：'
+    default_cover_width = 120
+
+    def invoke(self,
+               album: JmAlbumDetail = None,
+               filepath=None,
+               cover_dir=None,
+               cover_width=default_cover_width,
+               downloader=None,
+               **kwargs,
+               ) -> None:
+        if album is None:
+            return
+
+        filepath = filepath or os.path.join(self.option.dir_rule.base_dir, 'catalog.md')
+        filepath = JmcomicText.parse_to_abspath(filepath)
+        mkdir_if_not_exists(os.path.dirname(filepath))
+
+        catalog = self.read_catalog(filepath)
+        album_info = self.build_album_info(album)
+        cover = self.build_downloaded_cover_data_uri(album, downloader)
+        if not cover:
+            cover = self.build_cover_data_uri(album_info['id'], cover_dir)
+        if cover:
+            album_info['cover'] = cover
+
+        for author in album_info['authors']:
+            items = catalog.setdefault(author, [])
+            index = self.find_album_index(items, album_info['id'])
+            item = album_info.copy()
+            item.pop('authors')
+            if index != -1 and 'cover' not in item:
+                item['cover'] = items[index].get('cover', '')
+            if index == -1:
+                items.append(item)
+            else:
+                items[index] = item
+
+        self.write_catalog(filepath, catalog, cover_width)
+        self.log(f'更新总目录: {filepath}', 'finish')
+
+    @classmethod
+    def build_album_info(cls, album: JmAlbumDetail) -> dict:
+        authors = cls.clean_values(getattr(album, 'authors', None))
+        if not authors:
+            authors = [cls.clean_text(getattr(album, 'author', JmModuleConfig.DEFAULT_AUTHOR))]
+
+        return {
+            'id': str(album.album_id),
+            'title': cls.clean_text(album.name),
+            'link': cls.album_link(album.album_id),
+            'authors': authors,
+            'tags': cls.clean_values(getattr(album, 'tags', None)),
+            'chapters': cls.build_chapters(album),
+        }
+
+    @staticmethod
+    def clean_text(value: str) -> str:
+        return str(value).strip()
+
+    @classmethod
+    def clean_values(cls, values) -> list:
+        if values is None:
+            return []
+        if isinstance(values, str):
+            values = [values]
+
+        result = []
+        for value in values:
+            value = cls.clean_text(value)
+            if value and value not in result:
+                result.append(value)
+        return result
+
+    @staticmethod
+    def album_link(album_id: str) -> str:
+        return f'https://18comic.vip/album/{album_id}/'
+
+    @classmethod
+    def build_chapters(cls, album: JmAlbumDetail) -> list:
+        chapters = []
+        for episode in getattr(album, 'episode_list', []):
+            photo_id, index, title = episode[:3]
+            chapters.append({
+                'id': str(photo_id),
+                'index': str(index),
+                'title': cls.clean_text(title),
+            })
+        return chapters
+
+    @classmethod
+    def read_catalog(cls, filepath: str) -> dict:
+        if file_not_exists(filepath):
+            return {}
+
+        catalog = {}
+        current_author = None
+        current_item = None
+        pending_cover = ''
+
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line:
+                    continue
+
+                cover = cls.parse_cover_image_line(line)
+                if cover is not None:
+                    pending_cover = cover
+                    continue
+
+                entry = cls.parse_entry_line(line)
+                if entry is not None:
+                    if current_author is None:
+                        continue
+                    if pending_cover:
+                        entry['cover'] = pending_cover
+                        pending_cover = ''
+                    current_item = entry
+                    catalog.setdefault(current_author, []).append(current_item)
+                    continue
+
+                field_line = cls.normalize_field_line(line)
+
+                if field_line.startswith(cls.field_id):
+                    if current_item is not None:
+                        current_item['id'] = field_line[len(cls.field_id):].strip().removeprefix('JM')
+                    continue
+
+                if field_line.startswith(cls.field_link):
+                    if current_item is not None:
+                        current_item['link'] = field_line[len(cls.field_link):].strip()
+                    continue
+
+                if field_line.startswith(cls.field_tags):
+                    if current_item is not None:
+                        tags_text = field_line[len(cls.field_tags):].strip()
+                        current_item['tags'] = cls.split_tags(tags_text)
+                    continue
+
+                if field_line.startswith(cls.field_chapters):
+                    if current_item is not None:
+                        current_item['chapters'] = cls.split_chapters(field_line[len(cls.field_chapters):].strip())
+                    continue
+
+                if field_line.startswith(cls.field_cover):
+                    if current_item is not None:
+                        current_item['cover'] = field_line[len(cls.field_cover):].strip()
+                    continue
+
+                if line.startswith('# '):
+                    line = line[2:].strip()
+
+                current_author = line
+                current_item = None
+                catalog.setdefault(current_author, [])
+
+        return catalog
+
+    @classmethod
+    def parse_entry_line(cls, line: str):
+        import re
+        line = line.removeprefix('- ').strip()
+        detail_match = re.match(r'^(?:\d+\.\s+)?(?:📖\s+)?标题：(.+)$', line)
+        if detail_match is not None:
+            return {
+                'id': '',
+                'title': detail_match.group(1).strip(),
+                'link': '',
+                'cover': '',
+                'tags': [],
+                'chapters': [],
+            }
+
+        match = re.match(r'^(?:-\s+)?\d+\.\s+JM(\d+)-(.+)$', line)
+        if match is None:
+            return None
+
+        return {
+            'id': match.group(1),
+            'title': match.group(2).strip(),
+            'link': cls.album_link(match.group(1)),
+            'cover': '',
+            'tags': [],
+            'chapters': [],
+        }
+
+    @staticmethod
+    def parse_cover_image_line(line: str):
+        import re
+        match = re.match(r'^!\[JM\d+\]\((data:image/[^)]+)\)$', line)
+        if match is not None:
+            return match.group(1).strip()
+
+        match = re.match(r'^(\d+\.\s+)?<img\s+[^>]*src="(data:image/[^"]+)"[^>]*>$', line)
+        if match is None:
+            return None
+        return match.group(2).strip()
+
+    @staticmethod
+    def normalize_field_line(line: str) -> str:
+        line = line.removeprefix('- ').strip()
+        for icon in ('🆔', '🔗', '🏷️', '📑'):
+            if line.startswith(icon):
+                return line[len(icon):].strip()
+        return line
+
+    @classmethod
+    def build_cover_data_uri(cls, album_id: str, cover_dir: Optional[str]) -> str:
+        if not cover_dir:
+            return ''
+
+        cover_path = os.path.join(cover_dir, f'JM{album_id}.jpg')
+        if file_not_exists(cover_path):
+            return ''
+
+        import base64
+        with open(cover_path, 'rb') as f:
+            encoded = base64.b64encode(f.read()).decode('ascii')
+        try:
+            os.remove(cover_path)
+        except OSError:
+            pass
+        return f'data:image/jpeg;base64,{encoded}'
+
+    @classmethod
+    def build_downloaded_cover_data_uri(cls, album: JmAlbumDetail, downloader) -> str:
+        if downloader is None:
+            return ''
+
+        photo_dict = getattr(downloader, 'download_success_dict', {}).get(album)
+        if not photo_dict:
+            return ''
+
+        candidates = []
+        for photo, image_list in photo_dict.items():
+            photo_index = getattr(photo, 'index', 0) or 0
+            for image_path, image in image_list:
+                image_index = getattr(image, 'index', 0) or 0
+                candidates.append((photo_index, image_index, image_path))
+
+        for _, _, image_path in sorted(candidates):
+            if os.path.exists(image_path):
+                return cls.image_file_to_data_uri(image_path)
+
+        return ''
+
+    @staticmethod
+    def image_file_to_data_uri(image_path: str) -> str:
+        import base64
+        suffix = os.path.splitext(image_path)[1].lower()
+        mime = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif',
+        }.get(suffix, 'image/jpeg')
+        with open(image_path, 'rb') as f:
+            encoded = base64.b64encode(f.read()).decode('ascii')
+        return f'data:{mime};base64,{encoded}'
+
+    @staticmethod
+    def split_tags(tags_text: str) -> list:
+        if not tags_text:
+            return []
+        return [tag.strip() for tag in tags_text.split(',') if tag.strip()]
+
+    @staticmethod
+    def split_chapters(chapters_text: str) -> list:
+        if not chapters_text:
+            return []
+        result = []
+        for chunk in chapters_text.split('；'):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            result.append({'id': '', 'index': '', 'title': chunk})
+        return result
+
+    @staticmethod
+    def find_album_index(items: list, album_id: str) -> int:
+        for index, item in enumerate(items):
+            if item['id'] == album_id:
+                return index
+        return -1
+
+    @classmethod
+    def write_catalog(cls, filepath: str, catalog: dict, cover_width=default_cover_width):
+        sections = []
+        for author, items in catalog.items():
+            lines = [f'# {author}']
+            for index, item in enumerate(items, 1):
+                cover = item.get('cover', '')
+                if cover:
+                    lines.append(f'{index}. <img src="{cover}" alt="JM{item["id"]}" width="{cover_width}" style="vertical-align: top;">')
+                    lines.append('')
+                    lines.append(f"   - {cls.icon_title} {cls.field_title}{item['title']}")
+                else:
+                    lines.append(f"{index}. {cls.icon_title} {cls.field_title}{item['title']}")
+                lines.append(f"   - {cls.icon_id} {cls.field_id}JM{item['id']}")
+                lines.append(f"   - {cls.icon_link} {cls.field_link}{item.get('link') or cls.album_link(item['id'])}")
+                lines.append(f"   - {cls.icon_tags} {cls.field_tags}{', '.join(item.get('tags', []))}")
+                lines.append(f"   - {cls.icon_chapters} {cls.field_chapters}{cls.format_chapters(item.get('chapters', []))}")
+                if index != len(items):
+                    lines.append('')
+            sections.append('\n'.join(lines))
+
+        with open(filepath, 'w', encoding='utf-8-sig') as f:
+            text = '\n\n'.join(sections)
+            if text:
+                text += '\n'
+            f.write(text)
+
+    @staticmethod
+    def format_chapters(chapters: list) -> str:
+        result = []
+        for chapter in chapters:
+            cid = chapter.get('id', '')
+            cindex = chapter.get('index', '')
+            title = chapter.get('title', '')
+            prefix = f'第{cindex}话 ' if cindex else ''
+            suffix = f' (id: {cid})' if cid else ''
+            result.append(f'{prefix}{title}{suffix}'.strip())
+        return '；'.join(result)
+
+
 class LongImgPlugin(JmOptionPlugin):
     plugin_key = 'long_img'
 
