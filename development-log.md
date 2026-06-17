@@ -1,5 +1,35 @@
 # Development Log
 
+## 2026-06-17 23:07:55 +08:00
+
+### 修改范围
+
+- 桌面应用前期规划记录
+- 项目协作说明
+- 项目专属 Skill
+- 可视化草图文件忽略规则
+
+### 涉及文件
+
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `.gitignore`
+- `development-log.md`
+
+### 具体内容
+
+- 确认下一阶段目标是把当前脚本式工作流整理为 Windows 桌面应用，计划以 PySide6 + QFluentWidgets 实现，并参考 `ok-oldking/ok-script` 的原生 Windows 风格。
+- 初步需求包括：下载功能、查看详情功能、本地书库查找功能、按 JM 号/作者/标签筛选、按作者分组展示命中作品、封面卡片展示、点击封面打开 PDF、右键在文件资源管理器中打开 PDF 所在位置。
+- 后续打包方向倾向研究 `ok-oldking/pyappify`，避免默认使用 PyInstaller，并预留自动更新能力。
+- 用户确认开发记录也应记录必要的前期思路、规划结论和阶段进度；因此更新 `AGENTS.md` 和项目专属 Skill，把这条作为后续协作规则。
+- 用户确认可使用 brainstorming 可视化伴随来展示 UI 草图；将 `.superpowers/` 加入 `.gitignore`，避免本地草图会话文件进入仓库。
+
+### 验证情况
+
+- 本次为项目协作规则与规划记录更新，未运行代码单元测试。
+- 已检查本次记录未包含账号、密码、cookie、token、真实本地下载目录、PDF 或 `catalog.md` 内容。
+
 ## 2026-06-17 21:32:32 +08:00
 
 ### 修改范围
