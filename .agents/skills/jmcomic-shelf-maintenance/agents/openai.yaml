@@ -1,0 +1,4 @@
+interface:
+  display_name: "JMComic Shelf 维护助手"
+  short_description: "维护 JMComic Shelf 的开发记录、验证、提交和 GitHub push 流程。"
+  default_prompt: "根据 JMComic Shelf 的维护约定，更新 development-log，运行必要验证，并将普通代码或文档修改提交推送到 GitHub。"

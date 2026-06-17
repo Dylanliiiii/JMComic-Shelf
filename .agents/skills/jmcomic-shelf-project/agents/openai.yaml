@@ -1,0 +1,4 @@
+interface:
+  display_name: "JMComic Shelf 项目助手"
+  short_description: "维护 JMComic Shelf 的下载、PDF、目录插件、脚本和桌面应用规划。"
+  default_prompt: "根据 JMComic Shelf 的项目约定，更新下载工作流、目录插件、脚本、README 或后续桌面应用设计。"

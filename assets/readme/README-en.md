@@ -115,13 +115,13 @@ view-jmcomic.bat
 You can also call the upstream CLI directly:
 
 ```shell
-jmcomic 211899 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+jmcomic 211899 --option="./jmcomic-option.yml"
 ```
 
 Batch download:
 
 ```shell
-jmcomic 211899 123456 654321 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+jmcomic 211899 123456 654321 --option="./jmcomic-option.yml"
 ```
 
 ## Catalog File
@@ -129,7 +129,7 @@ jmcomic 211899 123456 654321 --option="D:/Others/JMComic-Crawler-Python/jmcomic-
 After downloads, the project automatically maintains:
 
 ```text
-D:/Others/JMComic/catalog.md
+D:/path/to/JMComic/catalog.md
 ```
 
 Example catalog entry:

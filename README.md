@@ -112,13 +112,13 @@ view-jmcomic.bat
 也可以直接使用命令行：
 
 ```shell
-jmcomic 211899 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+jmcomic 211899 --option="./jmcomic-option.yml"
 ```
 
 批量下载：
 
 ```shell
-jmcomic 211899 123456 654321 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+jmcomic 211899 123456 654321 --option="./jmcomic-option.yml"
 ```
 
 ## 目录文件
@@ -126,7 +126,7 @@ jmcomic 211899 123456 654321 --option="D:/Others/JMComic-Crawler-Python/jmcomic-
 下载后会自动维护：
 
 ```text
-D:/Others/JMComic/catalog.md
+D:/path/to/JMComic/catalog.md
 ```
 
 目录格式示例：
