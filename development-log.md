@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-06-18 01:05:32 +08:00
+
+### 修改范围
+
+- 桌面应用源码启动脚本
+- README 桌面端启动说明
+- 开发记录
+
+### 涉及文件
+
+- `start-jmcomic-shelf.bat`
+- `README.md`
+- `assets/readme/README-en.md`
+- `development-log.md`
+
+### 具体内容
+
+- 用户直接在项目根目录运行 `python -m jmcomic_shelf.app` 时，当前 Python 环境找不到 `src/jmcomic_shelf`，报错 `ModuleNotFoundError: No module named 'jmcomic_shelf'`。
+- 根因是桌面端代码当前仍以源码形式放在 `src/` 下，尚未通过 `pip install -e .` 或正式打包安装到 Python 环境；直接 `python -m ...` 不会自动把 `src` 加入模块搜索路径。
+- 新增 `start-jmcomic-shelf.bat`，双击时自动设置 `PYTHONPATH=%~dp0src`，再运行 `python -m jmcomic_shelf.app`，让源码仓库阶段也能直接启动桌面应用。
+- README 和英文 README 补充说明：源码仓库阶段优先双击 `start-jmcomic-shelf.bat`；安装包或 editable install 后才使用 `jmcomic-shelf` 命令。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src'; $env:QT_QPA_PLATFORM='offscreen'; python -c "from PySide6.QtWidgets import QApplication; from jmcomic_shelf.ui.main_window import MainWindow; app=QApplication([]); window=MainWindow(); print(window.windowTitle())"`，结果输出 `JMComic Shelf`。
+- 本次未实际触发下载，不涉及账号密码、cookie、token、代理凭据、下载内容、PDF、封面缓存或本地 `catalog.md`。
+
 ## 2026-06-18 00:45:23 +08:00
 
 ### 修改范围

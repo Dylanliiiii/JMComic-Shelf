@@ -92,7 +92,13 @@ PDF files and `catalog.md` are generated in the download directory.
 
 ### 3. Desktop App Preview
 
-This repository now includes an early PySide6 + QFluentWidgets desktop entry:
+This repository now includes an early PySide6 + QFluentWidgets desktop entry. When running from the source checkout, double-click:
+
+```text
+start-jmcomic-shelf.bat
+```
+
+After installing the package, you can also run:
 
 ```shell
 jmcomic-shelf

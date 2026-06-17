@@ -89,7 +89,13 @@ PDF 和 `catalog.md` 会生成在下载目录中。
 
 ### 3. 桌面应用预览
 
-当前仓库已开始加入 PySide6 + QFluentWidgets 桌面端入口，安装项目后可运行：
+当前仓库已开始加入 PySide6 + QFluentWidgets 桌面端入口。直接使用源码仓库时，可以双击：
+
+```text
+start-jmcomic-shelf.bat
+```
+
+安装项目后也可以运行：
 
 ```shell
 jmcomic-shelf
