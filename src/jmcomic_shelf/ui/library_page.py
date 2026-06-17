@@ -1,54 +1,41 @@
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QFont, QFontMetrics, QPixmap
-from PySide6.QtWidgets import (
-    QFrame,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QMenu,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
-from qfluentwidgets import BodyLabel, LineEdit, Pivot, StrongBodyLabel
+from PySide6.QtGui import QAction, QFontMetrics, QPixmap
+from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QMenu, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, LineEdit, Pivot, SmoothScrollArea, SubtitleLabel, TitleLabel
 
 from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
-from jmcomic_shelf.index_service import group_by_author
-from jmcomic_shelf.paths import get_database_path
+from jmcomic_shelf.index_service import group_by_author, rebuild_index_from_download_dir
+from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_settings_path
+from jmcomic_shelf.settings import ShelfSettings
 
-from .styles import apply_page_style
+from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
 
-class CoverCard(QFrame):
+class CoverCard(CardWidget):
     cover_width = 150
 
     def __init__(self, record, parent=None):
         super().__init__(parent)
         self.record = record
-        self.setObjectName('coverCard')
-        self.setCursor(Qt.PointingHandCursor)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedWidth(178)
-        self.setStyleSheet(
-            '#coverCard { border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px; }'
-            '#coverCard:hover { border-color: #7aa7e8; background: #f7fbff; }'
-        )
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
 
-        self.cover = QLabel()
+        self.cover = QLabel(self)
         self.cover.setFixedSize(self.cover_width, 210)
-        self.cover.setAlignment(Qt.AlignCenter)
-        self.cover.setStyleSheet('background: #f3f3f3; border-radius: 6px; color: #777;')
+        self.cover.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cover.setStyleSheet('border-radius: 6px;')
         self._load_cover()
 
         caption = f'JM{record.jm_id} {record.title}'
         metrics = QFontMetrics(self.font())
-        self.caption = BodyLabel(metrics.elidedText(caption, Qt.ElideRight, self.cover_width))
+        self.caption = CaptionLabel(metrics.elidedText(caption, Qt.TextElideMode.ElideRight, self.cover_width), self)
         self.caption.setFixedWidth(self.cover_width)
         self.caption.setToolTip(caption)
 
@@ -59,13 +46,17 @@ class CoverCard(QFrame):
         if self.record.cover_path and os.path.exists(self.record.cover_path):
             pixmap = QPixmap(self.record.cover_path)
             if not pixmap.isNull():
-                scaled = pixmap.scaled(self.cover.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                scaled = pixmap.scaled(
+                    self.cover.size(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
                 self.cover.setPixmap(scaled)
                 return
         self.cover.setText('无封面')
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton and self.record.pdf_path:
+        if event.button() == Qt.MouseButton.LeftButton and self.record.pdf_path:
             open_pdf(self.record.pdf_path)
         super().mousePressEvent(event)
 
@@ -75,8 +66,9 @@ class CoverCard(QFrame):
         reveal_action = QAction('在文件资源管理器中显示位置', self)
         open_action.triggered.connect(lambda: open_pdf(self.record.pdf_path))
         reveal_action.triggered.connect(lambda: reveal_in_explorer(self.record.pdf_path))
-        open_action.setEnabled(bool(self.record.pdf_path and os.path.exists(self.record.pdf_path)))
-        reveal_action.setEnabled(bool(self.record.pdf_path and os.path.exists(self.record.pdf_path)))
+        exists = bool(self.record.pdf_path and os.path.exists(self.record.pdf_path))
+        open_action.setEnabled(exists)
+        reveal_action.setEnabled(exists)
         menu.addAction(open_action)
         menu.addAction(reveal_action)
         menu.exec(event.globalPos())
@@ -87,38 +79,41 @@ class LibraryPage(QWidget):
         super().__init__(parent)
         self.records = []
         self.load_error = ''
+        self.setObjectName('libraryPage')
         apply_page_style(self)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(14)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(16)
 
-        header = QHBoxLayout()
-        title = StrongBodyLabel('书库')
-        title.setFont(QFont(self.font().family(), 16, QFont.Bold))
-        self.search_input = LineEdit()
+        title = TitleLabel('书库', self)
+        self.search_input = LineEdit(self)
         self.search_input.setPlaceholderText('搜索 JM号 / 作者 / 标签')
         self.search_input.textChanged.connect(self.reload)
-        header.addWidget(title)
-        header.addStretch(1)
-        header.addWidget(self.search_input, 1)
 
-        note = BodyLabel('浏览当前下载目录里的本地漫画；可输入 JM 号、作者或标签筛选，点封面打开 PDF，右键可定位文件。')
+        note = CaptionLabel(
+            '浏览当前下载目录里的本地漫画；可输入 JM 号、作者或标签筛选，点击封面打开 PDF，右键可定位文件。',
+            self,
+        )
         note.setWordWrap(True)
 
-        self.filter_pivot = Pivot()
+        self.filter_pivot = Pivot(self)
         self.filter_pivot.addItem('all', '全部', lambda: self.search_input.clear())
         self.filter_pivot.setCurrentItem('all')
 
-        self.scroll = QScrollArea()
+        self.scroll = SmoothScrollArea(self)
         self.scroll.setWidgetResizable(True)
-        self.content = QWidget()
+        self.scroll.setFrameShape(self.scroll.Shape.NoFrame)
+        self.scroll.setStyleSheet(TRANSPARENT_SCROLL_STYLE)
+        self.content = QWidget(self.scroll)
+        self.content.setStyleSheet('background: transparent;')
         self.content_layout = QVBoxLayout(self.content)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(20)
+        self.content_layout.setContentsMargins(0, 0, 14, 0)
+        self.content_layout.setSpacing(16)
         self.scroll.setWidget(self.content)
 
-        layout.addLayout(header)
+        layout.addWidget(title)
+        layout.addWidget(self.search_input)
         layout.addWidget(note)
         layout.addWidget(self.filter_pivot)
         layout.addWidget(self.scroll, 1)
@@ -126,11 +121,17 @@ class LibraryPage(QWidget):
 
     def reload(self):
         query = self.search_input.text().strip()
-        db = ShelfDatabase(get_database_path())
+        settings = ShelfSettings.load(get_settings_path())
+        sync_error = ''
+        try:
+            self._sync_index_from_settings(settings)
+        except Exception as e:
+            sync_error = str(e)
+        db = ShelfDatabase(get_database_path(settings.app_data_dir))
         try:
             db.open()
             self.records = db.query_albums(query)
-            self.load_error = ''
+            self.load_error = sync_error
         except Exception as e:
             self.records = []
             self.load_error = str(e)
@@ -138,30 +139,55 @@ class LibraryPage(QWidget):
             db.close()
         self.render_records()
 
-    def render_records(self):
-        while self.content_layout.count():
-            item = self.content_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+    def _sync_index_from_settings(self, settings):
+        if not settings.download_dir:
+            return
+        rebuild_index_from_download_dir(
+            settings.download_dir,
+            get_database_path(settings.app_data_dir),
+            get_cover_cache_dir(settings.app_data_dir),
+        )
 
+    def render_records(self):
+        self._clear_content()
         if not self.records:
-            empty = QLabel(f'无法读取书库索引：{self.load_error}' if self.load_error else '暂无内容')
-            empty.setAlignment(Qt.AlignCenter)
-            empty.setWordWrap(True)
-            self.content_layout.addWidget(empty)
+            self.content_layout.addWidget(self._empty_card())
             self.content_layout.addStretch(1)
             return
 
         for author, records in group_by_author(self.records).items():
-            self.content_layout.addWidget(StrongBodyLabel(f'{author} · {len(records)} 本'))
-            grid_host = QWidget()
+            self.content_layout.addWidget(SubtitleLabel(f'{author} · {len(records)} 本', self.content))
+            grid_host = QWidget(self.content)
+            grid_host.setStyleSheet('background: transparent;')
             grid = QGridLayout(grid_host)
             grid.setContentsMargins(0, 0, 0, 0)
             grid.setHorizontalSpacing(12)
             grid.setVerticalSpacing(12)
             for index, record in enumerate(records):
-                grid.addWidget(CoverCard(record), index // 5, index % 5)
+                grid.addWidget(CoverCard(record, grid_host), index // 5, index % 5)
             self.content_layout.addWidget(grid_host)
 
         self.content_layout.addStretch(1)
+
+    def _empty_card(self):
+        card = QFrame(self.content)
+        card.setStyleSheet('QFrame { background: #3a2f32; border: 1px solid #493d41; border-radius: 8px; }')
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(18, 16, 18, 16)
+        if self.load_error:
+            title = SubtitleLabel('无法读取书库索引', card)
+            desc = BodyLabel(self.load_error, card)
+        else:
+            title = SubtitleLabel('暂无内容', card)
+            desc = BodyLabel('请先在设置中确认下载目录，或点击“重建索引”扫描现有漫画。', card)
+        desc.setWordWrap(True)
+        layout.addWidget(title)
+        layout.addWidget(desc)
+        return card
+
+    def _clear_content(self):
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()

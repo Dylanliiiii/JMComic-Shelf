@@ -1,70 +1,55 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractScrollArea, QTableWidget, QWidget
-from qfluentwidgets import isDarkTheme
 
 
-LIGHT_PAGE_STYLE = """
-QWidget {
-    background: #fbf7f7;
-    color: #1f1f1f;
-    font-size: 15px;
-}
-QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {
-    background: #fbf7f7;
+TRANSPARENT_SCROLL_STYLE = """
+QScrollArea {
+    background: transparent;
     border: none;
 }
-QTableWidget {
-    background: #ffffff;
-    color: #1f1f1f;
-    gridline-color: #e6e1e1;
-    selection-background-color: #e8f3ff;
-    selection-color: #1f1f1f;
+QScrollArea > QWidget > QWidget {
+    background: transparent;
 }
-QHeaderView::section {
-    background: #f3eeee;
-    color: #1f1f1f;
-    border: none;
-    border-bottom: 1px solid #e2dddd;
-    padding: 8px;
+QScrollBar {
+    background: transparent;
 }
 """
 
-DARK_PAGE_STYLE = """
-QWidget {
-    background: #202020;
-    color: #f3f3f3;
-    font-size: 15px;
+DARK_CONTROL_STYLE = """
+LineEdit, TextEdit, QLineEdit, QTextEdit {
+    background: #33292c;
+    color: #f5f0f1;
+    border: 1px solid #493d41;
+    border-radius: 6px;
 }
-QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {
-    background: #202020;
-    border: none;
+CardWidget {
+    background: #3a2f32;
+    border: 1px solid #493d41;
+    border-radius: 8px;
 }
 QTableWidget {
-    background: #2b2b2b;
-    color: #f3f3f3;
-    gridline-color: #3d3d3d;
-    selection-background-color: #2d5f76;
-    selection-color: #ffffff;
+    background: #33292c;
+    color: #f5f0f1;
+    border: 1px solid #493d41;
+    border-radius: 8px;
+    gridline-color: #493d41;
 }
 QHeaderView::section {
-    background: #303030;
-    color: #f3f3f3;
+    background: #3a2f32;
+    color: #f5f0f1;
     border: none;
-    border-bottom: 1px solid #444444;
     padding: 8px;
 }
 """
-
-
-def page_style() -> str:
-    return DARK_PAGE_STYLE if isDarkTheme() else LIGHT_PAGE_STYLE
 
 
 def apply_page_style(widget: QWidget) -> None:
-    widget.setStyleSheet(page_style())
+    widget.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+    widget.setStyleSheet(f'#{widget.objectName()} {{ background: transparent; }}\n{DARK_CONTROL_STYLE}')
 
 
 def prepare_table(table: QTableWidget) -> None:
     table.setAlternatingRowColors(False)
     table.setShowGrid(False)
-    table.setStyleSheet(page_style())
+    table.setStyleSheet(DARK_CONTROL_STYLE)
     table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustIgnored)

@@ -1,13 +1,12 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, LineEdit, PrimaryPushButton, PushButton, StrongBodyLabel
+from qfluentwidgets import BodyLabel, LineEdit, PrimaryPushButton, PushButton, TitleLabel
 
 from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.detail_service import fetch_album_detail
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
-from jmcomic_shelf.index_service import record_from_album
-from jmcomic_shelf.paths import get_database_path, get_settings_path
+from jmcomic_shelf.index_service import rebuild_index_from_download_dir, record_from_album
+from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_settings_path
 from jmcomic_shelf.settings import ShelfSettings
 
 from .styles import apply_page_style
@@ -16,35 +15,34 @@ from .styles import apply_page_style
 class DetailPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName('detailPage')
         self.local_record = None
         apply_page_style(self)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(14)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(16)
 
         header = QHBoxLayout()
-        title = StrongBodyLabel('查看详情')
-        title.setFont(QFont(self.font().family(), 16, QFont.Bold))
-        header.addWidget(title)
-        self.input = LineEdit()
+        header.addWidget(TitleLabel('查看详情', self))
+        self.input = LineEdit(self)
         self.input.setPlaceholderText('输入 JM 号')
-        self.query_button = PrimaryPushButton('查看详情')
+        self.query_button = PrimaryPushButton('查看详情', self)
         self.query_button.clicked.connect(self.load_detail)
         header.addWidget(self.input, 1)
         header.addWidget(self.query_button)
 
-        self.info = QLabel('尚未查询')
-        self.info.setAlignment(Qt.AlignTop)
+        self.info = QLabel('尚未查询', self)
+        self.info.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.info.setWordWrap(True)
-        self.info.setStyleSheet('color: #1f1f1f; background: transparent;')
+        self.info.setStyleSheet('background: transparent;')
 
-        note = BodyLabel('查询单个 JM 号的线上详情；如果书库索引里已有本地 PDF，可直接打开或定位文件。')
+        note = BodyLabel('查询单个 JM 号的线上详情；如果书库索引里已有本地 PDF，可直接打开或定位文件。', self)
         note.setWordWrap(True)
 
         actions = QHBoxLayout()
-        self.open_button = PushButton('打开 PDF')
-        self.reveal_button = PushButton('在文件资源管理器中显示位置')
+        self.open_button = PushButton('打开 PDF', self)
+        self.reveal_button = PushButton('在文件资源管理器中显示位置', self)
         self.open_button.clicked.connect(self.open_local_pdf)
         self.reveal_button.clicked.connect(self.reveal_local_pdf)
         actions.addWidget(self.open_button)
@@ -64,9 +62,10 @@ class DetailPage(QWidget):
             return
         try:
             settings = ShelfSettings.load(get_settings_path())
+            self._sync_index(settings)
             album = fetch_album_detail(settings.option_path, jm_id)
             record = record_from_album(album)
-            self.local_record = self.find_local_record(jm_id)
+            self.local_record = self.find_local_record(jm_id, settings.app_data_dir)
             self.info.setText(
                 f'标题：{record.title}\n'
                 f'JM号：JM{record.jm_id}\n'
@@ -81,8 +80,16 @@ class DetailPage(QWidget):
         finally:
             self.update_actions()
 
-    def find_local_record(self, jm_id: str):
-        db = ShelfDatabase(get_database_path())
+    def _sync_index(self, settings):
+        if settings.download_dir:
+            rebuild_index_from_download_dir(
+                settings.download_dir,
+                get_database_path(settings.app_data_dir),
+                get_cover_cache_dir(settings.app_data_dir),
+            )
+
+    def find_local_record(self, jm_id: str, app_data_dir: str = ''):
+        db = ShelfDatabase(get_database_path(app_data_dir))
         db.open()
         try:
             records = db.query_albums(jm_id)

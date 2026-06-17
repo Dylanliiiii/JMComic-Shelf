@@ -36,3 +36,37 @@ class TestShelfIndexService(unittest.TestCase):
 
         self.assertEqual([x.jm_id for x in grouped['作者A']], ['1', '2'])
         self.assertEqual([x.jm_id for x in grouped['作者B']], ['1'])
+
+    def test_rebuild_index_from_download_dir_finds_existing_pdf_and_images(self):
+        from tempfile import TemporaryDirectory
+
+        from PIL import Image
+
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.index_service import rebuild_index_from_download_dir
+
+        with TemporaryDirectory() as tmp:
+            album_dir = os.path.join(tmp, '作者A', 'JM211899-作品A', '第1章')
+            os.makedirs(album_dir)
+            cover_path = os.path.join(album_dir, '00001.jpg')
+            Image.new('RGB', (120, 180), 'red').save(cover_path)
+            pdf_path = os.path.join(tmp, 'JM211899-作品A.pdf')
+            with open(pdf_path, 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            db_path = os.path.join(tmp, 'app', 'shelf.db')
+            count = rebuild_index_from_download_dir(tmp, db_path, os.path.join(tmp, 'app', 'covers'))
+
+            db = ShelfDatabase(db_path)
+            db.open()
+            try:
+                records = db.query_albums('211899')
+            finally:
+                db.close()
+
+            self.assertEqual(count, 1)
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0].title, '作品A')
+            self.assertEqual(records[0].authors, ['作者A'])
+            self.assertEqual(records[0].pdf_path, pdf_path)
+            self.assertTrue(os.path.exists(records[0].cover_path))

@@ -1,5 +1,5 @@
 from PySide6.QtGui import QFont
-from qfluentwidgets import FluentIcon, FluentWindow, NavigationItemPosition, Theme, setTheme
+from qfluentwidgets import FluentIcon, FluentWindow, NavigationItemPosition, Theme, setTheme, setThemeColor
 
 from .detail_page import DetailPage
 from .download_page import DownloadPage
@@ -10,12 +10,12 @@ from .settings_page import SettingsPage
 class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
-        setTheme(Theme.AUTO)
+        setTheme(Theme.DARK)
+        setThemeColor('#00c8d7')
         self.setWindowTitle('JMComic Shelf')
         self.resize(1100, 720)
         self.setFont(QFont(self.font().family(), 11))
-        self.setMicaEffectEnabled(False)
-        self.setStyleSheet('MainWindow, FluentWindow, QWidget { background: #fbf7f7; }')
+        self.setMicaEffectEnabled(True)
 
         self.library_page = LibraryPage(self)
         self.download_page = DownloadPage(self)
@@ -39,10 +39,7 @@ class MainWindow(FluentWindow):
 
         self.navigationInterface.setExpandWidth(180)
         self.navigationInterface.expand(useAni=False)
-        self.navigationInterface.setStyleSheet(
-            'NavigationInterface { background: #fbf7f7; }'
-            'NavigationPanel { background: #fbf7f7; }'
-        )
+        self.stackedWidget.setStyleSheet('QStackedWidget { background: transparent; }')
         self.stackedWidget.currentChanged.connect(self.reload_current_page)
 
     def reload_current_page(self):

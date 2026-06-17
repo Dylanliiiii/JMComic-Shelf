@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from dataclasses import dataclass
 from typing import List
 
@@ -66,7 +66,7 @@ class DownloadService:
             if not self.option_path:
                 raise ValueError('请先在设置里选择配置文件 jmcomic-option.yml')
             if not os.path.exists(self.option_path):
-                raise FileNotFoundError(f'配置文件不存在: {self.option_path}')
+                raise FileNotFoundError(f'配置文件不存在：{self.option_path}')
             option_factory = self.option_factory or create_option
             download_func = self.download_func or download_album
             option = option_factory(self.option_path)

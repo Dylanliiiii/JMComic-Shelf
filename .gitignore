@@ -166,3 +166,4 @@ cython_debug/
 .agent
 gemini.md
 .superpowers/
+.tmp_launchdock_ref/
