@@ -1,5 +1,46 @@
 ﻿# Development Log
 
+## 2026-06-18 03:48:42 +08:00
+
+### 修改范围
+
+- 桌面端书库批量管理。
+- 本地漫画文件删除服务。
+- 桌面端 SQLite 索引字段与删除能力。
+- README、桌面应用设计文档和实施计划。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/models.py`
+- `src/jmcomic_shelf/database.py`
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/delete_service.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_database.py`
+- `tests/test_jmcomic/test_shelf_delete_service.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `README.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 书库页新增“批量管理”模式；进入后封面卡片左上角显示选择框，点击选择框或整张卡片都可切换选中状态。
+- 批量工具栏提供“全选”“反选”“取消全选”“删除选中”和“退出批量管理”，并显示当前选中数量。
+- 删除选中前弹出确认框，明确提示会删除所选漫画的本地文件和桌面端数据库索引。
+- 新增 `delete_service.py`，删除时只处理当前下载目录内的漫画目录和 PDF 文件，外部路径和下载根目录本身会跳过，避免误删。
+- SQLite `albums` 表新增 `album_dir` 字段，并在打开旧数据库时自动迁移；下载目录扫描会写入本地漫画目录路径，供批量删除使用。
+- `ShelfDatabase` 新增 `delete_albums()`，删除选中作品的索引记录，并依赖外键级联清理作者、标签、章节关联。
+- README、spec 和 plan 已同步记录批量管理、二次确认和本地文件删除行为；`AGENTS.md` 与项目专属 Skill 的规则未变化，无需同步。
+
+### 验证情况
+
+- 已按 TDD 先新增失败测试：`test_delete_albums_removes_selected_records` 和 `test_delete_album_files_removes_download_dir_album_assets_only`，确认分别因缺少数据库删除方法和删除服务模块而失败。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，20 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\database.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\delete_service.py src\jmcomic_shelf\models.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\styles.py src\jmcomic_shelf\ui\theme.py`，通过。
+- 已运行 offscreen `MainWindow` 批量模式烟测，确认可进入批量模式并执行全选、反选、取消全选。
+
 ## 2026-06-18 03:38:12 +08:00
 
 ### 修改范围

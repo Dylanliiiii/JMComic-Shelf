@@ -69,4 +69,5 @@ class TestShelfIndexService(unittest.TestCase):
             self.assertEqual(records[0].title, '作品A')
             self.assertEqual(records[0].authors, ['作者A'])
             self.assertEqual(records[0].pdf_path, pdf_path)
+            self.assertEqual(records[0].album_dir, os.path.dirname(album_dir))
             self.assertTrue(os.path.exists(records[0].cover_path))

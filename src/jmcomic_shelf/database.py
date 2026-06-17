@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS albums (
   link TEXT NOT NULL DEFAULT '',
   pdf_path TEXT NOT NULL DEFAULT '',
   cover_path TEXT NOT NULL DEFAULT '',
+  album_dir TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS authors (
@@ -59,7 +60,15 @@ class ShelfDatabase:
         self.conn = sqlite3.connect(self.filepath)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        self._migrate()
         self.conn.commit()
+
+    def _migrate(self) -> None:
+        columns = {
+            row['name'] for row in self.conn.execute('PRAGMA table_info(albums)').fetchall()
+        }
+        if 'album_dir' not in columns:
+            self.conn.execute("ALTER TABLE albums ADD COLUMN album_dir TEXT NOT NULL DEFAULT ''")
 
     def close(self) -> None:
         if self.conn is not None:
@@ -82,16 +91,17 @@ class ShelfDatabase:
         with conn:
             conn.execute(
                 """
-                INSERT INTO albums (jm_id, title, link, pdf_path, cover_path, updated_at)
-                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO albums (jm_id, title, link, pdf_path, cover_path, album_dir, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(jm_id) DO UPDATE SET
                   title=excluded.title,
                   link=excluded.link,
                   pdf_path=excluded.pdf_path,
                   cover_path=excluded.cover_path,
+                  album_dir=excluded.album_dir,
                   updated_at=CURRENT_TIMESTAMP
                 """,
-                (record.jm_id, record.title, record.link, record.pdf_path, record.cover_path),
+                (record.jm_id, record.title, record.link, record.pdf_path, record.cover_path, record.album_dir),
             )
             conn.execute('DELETE FROM album_authors WHERE jm_id = ?', (record.jm_id,))
             conn.execute('DELETE FROM album_tags WHERE jm_id = ?', (record.jm_id,))
@@ -115,6 +125,19 @@ class ShelfDatabase:
                         str(chapter.get('title', '')),
                     ),
                 )
+
+    def delete_albums(self, jm_ids: list[str]) -> int:
+        normalized = [str(jm_id).removeprefix('JM').removeprefix('jm') for jm_id in jm_ids]
+        normalized = [jm_id for jm_id in normalized if jm_id]
+        if not normalized:
+            return 0
+        conn = self._require_conn()
+        with conn:
+            deleted = 0
+            for jm_id in normalized:
+                cursor = conn.execute('DELETE FROM albums WHERE jm_id = ?', (jm_id,))
+                deleted += cursor.rowcount
+            return deleted
 
     def query_albums(self, query: str = '') -> List[AlbumRecord]:
         conn = self._require_conn()
@@ -195,6 +218,7 @@ class ShelfDatabase:
             link=row['link'],
             pdf_path=row['pdf_path'],
             cover_path=row['cover_path'],
+            album_dir=row['album_dir'],
             authors=authors,
             tags=tags,
             chapters=chapters,

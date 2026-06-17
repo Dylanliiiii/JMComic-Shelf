@@ -66,10 +66,13 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
                 AlbumRecord(
                     jm_id=jm_id,
                     title=album_match.group('title').strip(),
+                    album_dir=root,
                     authors=[author] if author else [],
                     chapters=_chapters_from_album_dir(root),
                 ),
             )
+            if not record.album_dir:
+                record.album_dir = root
             if author and author not in record.authors:
                 record.authors.append(author)
             if not record.cover_path:

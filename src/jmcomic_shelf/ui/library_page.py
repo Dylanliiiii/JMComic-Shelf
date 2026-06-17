@@ -1,11 +1,12 @@
 import os
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QFontMetrics, QPixmap
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, LineEdit, Pivot, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
+from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, Pivot, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
 from jmcomic_shelf.database import ShelfDatabase
+from jmcomic_shelf.delete_service import delete_album_files
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
 from jmcomic_shelf.index_service import group_by_author, rebuild_index_from_download_dir
 from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_settings_path
@@ -15,18 +16,26 @@ from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
 
 class CoverCard(CardWidget):
+    selection_changed = Signal(str, bool)
     cover_width = 150
     card_width = 178
 
     def __init__(self, record, parent=None):
         super().__init__(parent)
         self.record = record
+        self.selection_mode = False
+        self.selected = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedWidth(self.card_width)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
+
+        self.checkbox = CheckBox(self)
+        self.checkbox.setVisible(False)
+        self.checkbox.clicked.connect(self.toggle_selected)
+        layout.addWidget(self.checkbox, 0, Qt.AlignmentFlag.AlignLeft)
 
         self.cover = QLabel(self)
         self.cover.setFixedSize(self.cover_width, 210)
@@ -43,6 +52,25 @@ class CoverCard(CardWidget):
         layout.addWidget(self.cover)
         layout.addWidget(self.caption)
 
+    def set_selection_mode(self, enabled: bool):
+        self.selection_mode = enabled
+        self.checkbox.setVisible(enabled)
+        if not enabled:
+            self.set_selected(False, emit=False)
+
+    def set_selected(self, selected: bool, emit: bool = True):
+        self.selected = selected
+        self.checkbox.setChecked(selected)
+        if selected:
+            self.setStyleSheet('CoverCard { border: 1px solid #00c8d7; border-radius: 8px; }')
+        else:
+            self.setStyleSheet('')
+        if emit:
+            self.selection_changed.emit(self.record.jm_id, selected)
+
+    def toggle_selected(self, *_):
+        self.set_selected(not self.selected)
+
     def _load_cover(self):
         if self.record.cover_path and os.path.exists(self.record.cover_path):
             pixmap = QPixmap(self.record.cover_path)
@@ -57,6 +85,10 @@ class CoverCard(CardWidget):
         self.cover.setText('无封面')
 
     def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self.selection_mode:
+            self.toggle_selected()
+            event.accept()
+            return
         if event.button() == Qt.MouseButton.LeftButton and self.record.pdf_path:
             open_pdf(self.record.pdf_path)
         super().mousePressEvent(event)
@@ -81,6 +113,8 @@ class LibraryPage(QWidget):
         self.records = []
         self.load_error = ''
         self.current_columns = 0
+        self.batch_mode = False
+        self.selected_ids = set()
         self.setObjectName('libraryPage')
         apply_page_style(self)
 
@@ -102,10 +136,38 @@ class LibraryPage(QWidget):
         self.filter_pivot = Pivot(self)
         self.filter_pivot.addItem('all', '全部', lambda: self.search_input.clear())
         self.filter_pivot.setCurrentItem('all')
+        self.batch_button = PushButton('批量管理', self)
+        self.batch_button.clicked.connect(self.toggle_batch_mode)
         filter_row = QHBoxLayout()
         filter_row.setContentsMargins(0, 0, 0, 0)
         filter_row.addWidget(self.filter_pivot)
         filter_row.addStretch(1)
+        filter_row.addWidget(self.batch_button)
+
+        self.batch_bar = QHBoxLayout()
+        self.batch_bar.setContentsMargins(0, 0, 0, 0)
+        self.batch_bar.setSpacing(8)
+        self.selected_label = CaptionLabel('已选 0 本', self)
+        self.select_all_button = PushButton('全选', self)
+        self.invert_button = PushButton('反选', self)
+        self.clear_selection_button = PushButton('取消全选', self)
+        self.delete_button = PrimaryPushButton('删除选中', self)
+        self.exit_batch_button = PushButton('退出批量管理', self)
+        self.select_all_button.clicked.connect(self.select_all)
+        self.invert_button.clicked.connect(self.invert_selection)
+        self.clear_selection_button.clicked.connect(self.clear_selection)
+        self.delete_button.clicked.connect(self.delete_selected)
+        self.exit_batch_button.clicked.connect(lambda: self.set_batch_mode(False))
+        self.batch_bar.addWidget(self.selected_label)
+        self.batch_bar.addStretch(1)
+        self.batch_bar.addWidget(self.select_all_button)
+        self.batch_bar.addWidget(self.invert_button)
+        self.batch_bar.addWidget(self.clear_selection_button)
+        self.batch_bar.addWidget(self.delete_button)
+        self.batch_bar.addWidget(self.exit_batch_button)
+        self.batch_host = QWidget(self)
+        self.batch_host.setLayout(self.batch_bar)
+        self.batch_host.setVisible(False)
 
         self.scroll = SmoothScrollArea(self)
         self.scroll.setWidgetResizable(True)
@@ -122,6 +184,11 @@ class LibraryPage(QWidget):
         layout.addWidget(self.search_input)
         layout.addWidget(note)
         layout.addLayout(filter_row)
+        layout.addWidget(self.batch_host)
+        self.action_status = CaptionLabel('', self)
+        self.action_status.setWordWrap(True)
+        self.action_status.setVisible(False)
+        layout.addWidget(self.action_status)
         layout.addWidget(self.scroll, 1)
         self.reload()
 
@@ -143,6 +210,7 @@ class LibraryPage(QWidget):
             self.load_error = str(e)
         finally:
             db.close()
+        self.selected_ids &= {record.jm_id for record in self.records}
         self.render_records()
 
     def resizeEvent(self, event):
@@ -183,6 +251,9 @@ class LibraryPage(QWidget):
             grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             for index, record in enumerate(records):
                 card = CoverCard(record, grid_host)
+                card.set_selection_mode(self.batch_mode)
+                card.set_selected(record.jm_id in self.selected_ids, emit=False)
+                card.selection_changed.connect(self.on_card_selection_changed)
                 grid.addWidget(card, index // columns, index % columns, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             for column in range(columns):
                 grid.setColumnMinimumWidth(column, CoverCard.card_width)
@@ -192,6 +263,7 @@ class LibraryPage(QWidget):
             self.content_layout.addWidget(grid_host)
 
         self.content_layout.addStretch(1)
+        self.update_batch_actions()
 
     def _column_count(self):
         available_width = max(1, self.scroll.viewport().width() - 18)
@@ -219,6 +291,78 @@ class LibraryPage(QWidget):
         layout.addWidget(title)
         layout.addWidget(desc)
         return card
+
+    def toggle_batch_mode(self):
+        self.set_batch_mode(not self.batch_mode)
+
+    def set_batch_mode(self, enabled: bool):
+        self.batch_mode = enabled
+        if not enabled:
+            self.selected_ids.clear()
+        self.batch_button.setText('退出批量管理' if enabled else '批量管理')
+        self.batch_host.setVisible(enabled)
+        self.render_records()
+
+    def on_card_selection_changed(self, jm_id: str, selected: bool):
+        if selected:
+            self.selected_ids.add(jm_id)
+        else:
+            self.selected_ids.discard(jm_id)
+        self.update_batch_actions()
+
+    def select_all(self):
+        self.selected_ids = {record.jm_id for record in self.records}
+        self.render_records()
+
+    def invert_selection(self):
+        visible_ids = {record.jm_id for record in self.records}
+        self.selected_ids = visible_ids - self.selected_ids
+        self.render_records()
+
+    def clear_selection(self):
+        self.selected_ids.clear()
+        self.render_records()
+
+    def update_batch_actions(self):
+        count = len(self.selected_ids)
+        self.selected_label.setText(f'已选 {count} 本')
+        self.delete_button.setEnabled(count > 0)
+        has_records = bool(self.records)
+        self.select_all_button.setEnabled(has_records)
+        self.invert_button.setEnabled(has_records)
+        self.clear_selection_button.setEnabled(count > 0)
+
+    def delete_selected(self):
+        records = [record for record in self.records if record.jm_id in self.selected_ids]
+        if not records:
+            return
+        box = MessageBox(
+            '确认删除本地漫画',
+            f'此操作会删除所选 {len(records)} 本漫画对应的本地文件，包括漫画目录、PDF 文件和桌面端数据库索引。\n\n删除后无法从应用内撤销，确认继续吗？',
+            self,
+        )
+        box.yesButton.setText('确认删除')
+        box.cancelButton.setText('取消')
+        if not box.exec():
+            return
+
+        settings = ShelfSettings.load(get_settings_path())
+        result = delete_album_files(records, settings.download_dir)
+        db = ShelfDatabase(get_database_path(settings.app_data_dir))
+        try:
+            db.open()
+            db.delete_albums([record.jm_id for record in records])
+        finally:
+            db.close()
+        self.selected_ids.clear()
+        self.reload()
+        messages = [f'已删除 {len(records)} 本漫画的本地文件和书库索引。']
+        if result.skipped_paths:
+            messages.append(f'有 {len(result.skipped_paths)} 个路径不在下载目录内，已跳过。')
+        if result.errors:
+            messages.append('部分文件删除失败：' + '；'.join(result.errors[:3]))
+        self.action_status.setText(' '.join(messages))
+        self.action_status.setVisible(True)
 
     def _clear_content(self):
         while self.content_layout.count():

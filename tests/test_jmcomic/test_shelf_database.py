@@ -47,3 +47,21 @@ class TestShelfDatabase(unittest.TestCase):
                 self.assertEqual([x.jm_id for x in db.query_albums('后宫')], ['211899'])
             finally:
                 db.close()
+
+    def test_delete_albums_removes_selected_records(self):
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.models import AlbumRecord
+
+        with TemporaryDirectory() as tmp:
+            db = ShelfDatabase(os.path.join(tmp, 'shelf.db'))
+            db.open()
+            try:
+                db.upsert_album(AlbumRecord('211899', '作品A', authors=['作者A'], tags=['标签1']))
+                db.upsert_album(AlbumRecord('123456', '作品B', authors=['作者B'], tags=['标签2']))
+
+                deleted = db.delete_albums(['211899'])
+
+                self.assertEqual(deleted, 1)
+                self.assertEqual([x.jm_id for x in db.query_albums('')], ['123456'])
+            finally:
+                db.close()
