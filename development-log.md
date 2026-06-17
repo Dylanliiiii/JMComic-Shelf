@@ -1,5 +1,27 @@
 ﻿# Development Log
 
+## 2026-06-18 03:38:12 +08:00
+
+### 修改范围
+
+- 桌面端设置页外观主题布局微调。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/settings_page.py`
+- `development-log.md`
+
+### 具体内容
+
+- 将设置页“外观主题”卡片中的主题下拉选择框移动到卡片右侧，左侧保留标题和说明文字。
+- 下拉框固定宽度为 `140`，整体使用横向布局，更接近 Windows 设置项的左右分栏表达。
+- 本次只调整已有功能的局部排布，不改变功能、配置结构或用户工作流；已检查 README、`AGENTS.md`、项目专属 Skill、spec 和 plan，无需同步更新。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，18 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\styles.py src\jmcomic_shelf\ui\theme.py`，通过。
+
 ## 2026-06-18 03:20:06 +08:00
 
 ### 修改范围

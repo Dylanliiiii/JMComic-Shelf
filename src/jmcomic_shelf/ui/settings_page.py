@@ -101,17 +101,19 @@ class SettingsPage(QWidget):
 
     def _theme_row(self):
         host = CardWidget(self)
-        outer = QVBoxLayout(host)
+        outer = QHBoxLayout(host)
         outer.setContentsMargins(18, 16, 18, 16)
-        outer.setSpacing(8)
-        outer.addWidget(SubtitleLabel('外观主题', host))
+        outer.setSpacing(16)
+        text_area = QVBoxLayout()
+        text_area.setContentsMargins(0, 0, 0, 0)
+        text_area.setSpacing(8)
+        text_area.addWidget(SubtitleLabel('外观主题', host))
         desc = CaptionLabel('选择桌面端使用浅色、深色，或跟随系统主题。选择后会立即预览，保存设置后下次启动继续使用。', host)
         desc.setWordWrap(True)
-        outer.addWidget(desc)
-        line = QHBoxLayout()
-        line.addWidget(self.theme_combo)
-        line.addStretch(1)
-        outer.addLayout(line)
+        text_area.addWidget(desc)
+        outer.addLayout(text_area, 1)
+        self.theme_combo.setFixedWidth(140)
+        outer.addWidget(self.theme_combo, 0)
         return host
 
     def choose_download_dir(self):
