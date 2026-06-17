@@ -90,7 +90,22 @@ download directory / author / JM ID-title / chapter number
 
 PDF files and `catalog.md` are generated in the download directory.
 
-### 3. Download with the Windows Script
+### 3. Desktop App Preview
+
+This repository now includes an early PySide6 + QFluentWidgets desktop entry:
+
+```shell
+jmcomic-shelf
+```
+
+The first desktop version provides a left navigation layout for Library, Download, Detail, and Settings. Desktop app data is stored under `%APPDATA%/JMComic Shelf/`, including `settings.json`, `shelf.db`, and non-cropped thumbnail covers. Downloaded images, PDF files, and the human-readable `catalog.md` remain in the user-selected download directory.
+
+UI and packaging references:
+
+- [ok-oldking/ok-script](https://github.com/ok-oldking/ok-script)
+- [ok-oldking/pyappify](https://github.com/ok-oldking/pyappify)
+
+### 4. Download with the Windows Script
 
 On Windows, double-click:
 
@@ -110,7 +125,7 @@ To view album details without downloading, double-click:
 view-jmcomic.bat
 ```
 
-### 4. Download from the Command Line
+### 5. Download from the Command Line
 
 You can also call the upstream CLI directly:
 

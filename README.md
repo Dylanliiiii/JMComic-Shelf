@@ -87,7 +87,38 @@ pip install jmcomic -U
 
 PDF 和 `catalog.md` 会生成在下载目录中。
 
-### 3. 双击脚本下载
+### 3. 桌面应用预览
+
+当前仓库已开始加入 PySide6 + QFluentWidgets 桌面端入口，安装项目后可运行：
+
+```shell
+jmcomic-shelf
+```
+
+桌面端第一版包含左侧图标文字导航：
+
+- `书库`：读取桌面端 SQLite 索引，支持 `全部`、JM 号、作者和标签搜索；按作者分组展示封面卡片。
+- `下载`：输入一个或多个 JM 号，调用现有下载流程，并为失败任务保留重试入口。
+- `查看详情`：输入单个 JM 号查看详情；如果本地索引已有 PDF，可直接打开或在文件资源管理器中定位。
+- `设置`：维护下载目录、`jmcomic-option.yml` 路径、应用数据目录和封面缓存清理。
+
+桌面端数据默认保存在 Windows 用户数据目录：
+
+```text
+%APPDATA%/JMComic Shelf/
+```
+
+其中 `settings.json` 保存桌面端设置，`shelf.db` 是桌面书库索引，`covers/` 只保存桌面端缩略图。下载得到的图片、PDF 和人工可读的 `catalog.md` 仍然保留在你设置的下载目录中。
+
+桌面端 UI 风格参考：
+
+- [ok-oldking/ok-script](https://github.com/ok-oldking/ok-script)
+
+后续打包与自动更新方向参考：
+
+- [ok-oldking/pyappify](https://github.com/ok-oldking/pyappify)
+
+### 4. 双击脚本下载
 
 Windows 下可以直接双击：
 
@@ -107,7 +138,7 @@ download-jmcomic.bat
 view-jmcomic.bat
 ```
 
-### 4. 命令行下载
+### 5. 命令行下载
 
 也可以直接使用命令行：
 

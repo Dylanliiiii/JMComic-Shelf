@@ -1,5 +1,76 @@
 # Development Log
 
+## 2026-06-18 00:45:23 +08:00
+
+### 修改范围
+
+- 桌面应用 v1 基础实现
+- 桌面书库 SQLite 索引
+- 非裁剪封面缩略图缓存
+- 下载、详情、文件操作服务
+- PySide6 + QFluentWidgets 桌面入口和页面
+- README 桌面端说明
+- 开发记录
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `src/jmcomic_shelf/paths.py`
+- `src/jmcomic_shelf/settings.py`
+- `src/jmcomic_shelf/models.py`
+- `src/jmcomic_shelf/database.py`
+- `src/jmcomic_shelf/cover_cache.py`
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/download_service.py`
+- `src/jmcomic_shelf/detail_service.py`
+- `src/jmcomic_shelf/file_actions.py`
+- `src/jmcomic_shelf/app.py`
+- `src/jmcomic_shelf/ui/`
+- `src/jmcomic/jm_plugin.py`
+- `tests/test_jmcomic/test_shelf_settings.py`
+- `tests/test_jmcomic/test_shelf_database.py`
+- `tests/test_jmcomic/test_shelf_cover_cache.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `tests/test_jmcomic/test_jm_plugin.py`
+- `pyproject.toml`
+- `setup.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `development-log.md`
+
+### 具体内容
+
+- 新增 `jmcomic_shelf` 桌面端包，提供 Windows 用户数据目录、`settings.json`、`shelf.db` 和封面缓存目录的统一路径入口。
+- 新增 `ShelfSettings`，保存当前下载目录、`jmcomic-option.yml` 路径和应用数据目录；桌面端第一版仍只管理当前设置里的一个下载目录。
+- 新增 `ShelfDatabase` SQLite 索引，保存作品、作者、标签、章节、PDF 路径和封面缩略图路径；空查询对应 UI 的 `全部`，不把 `全部` 写成真实标签。
+- 新增 `CoverCache`，只生成桌面端使用的 JPEG 缩略图，按宽度等比例缩小和压缩画质，不裁剪、不截断、不保存原图副本。
+- 新增 `record_from_album` 和 `group_by_author`，复用现有 `CatalogPlugin.build_album_info()`，让 Markdown 总目录和桌面 SQLite 索引共享同一套作者、标签和章节提取逻辑。
+- 在 `src/jmcomic/jm_plugin.py` 中新增 `shelf_index` 插件，用于下载后写入桌面端 SQLite 索引；原 `catalog` 插件继续维护下载目录下的 `catalog.md`。
+- 新增下载服务，支持空格、逗号和换行输入多个 JM 号，保留失败任务重试状态。
+- 新增详情服务和文件操作服务，用于获取单个 JM 号详情、打开 PDF、在文件资源管理器中定位 PDF。
+- 新增 `jmcomic-shelf` 命令和 PySide6 + QFluentWidgets 依赖，建立左侧图标文字导航：`书库`、`下载`、`查看详情`、`设置`。
+- 书库页实现 `全部`、JM 号/作者/标签搜索、作者分组、封面卡片、点击打开 PDF 和右键资源管理器定位；当 `%APPDATA%/JMComic Shelf/` 暂不可写或索引不可读时，页面显示空状态而不是导致应用启动失败。
+- 下载页实现多 JM 号输入、任务表格和失败重试按钮。
+- 查看详情页实现单 JM 号查询，不保存查询历史；本地索引有 PDF 时可打开或定位。
+- 设置页实现下载目录、配置文件、应用数据目录展示和封面缓存清理；重建索引按钮先作为后续扫描服务入口预留。
+- README 和英文 README 补充桌面端命令、数据位置、下载内容与 `catalog.md` 的保留规则，并记录完整参考链接：`https://github.com/ok-oldking/ok-script`、`https://github.com/ok-oldking/pyappify`。
+
+### 验证情况
+
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_settings -v`，结果通过。
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_database -v`，结果通过。
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_cover_cache -v`，结果通过。
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_index_service -v`，结果通过。
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_download_service -v`，结果通过。
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_library_page -v`，结果通过。
+- 已运行 `python -m unittest discover -s tests -p test_jm_plugin.py -k shelf_index -v`，结果通过。
+- 已运行 `python -m unittest discover -s tests -p test_jm_plugin.py -k catalog -v`，结果通过。
+- 已运行 `python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py`，结果通过。
+- 已运行主窗口 offscreen 构造检查，能成功实例化并输出 `JMComic Shelf`。
+- 本次未提交 `jmcomic-option.yml`、账号密码、cookie、token、代理凭据、下载内容、PDF、封面缓存或本地 `catalog.md`。
+
 ## 2026-06-18 00:03:12 +08:00
 
 ### 修改范围
