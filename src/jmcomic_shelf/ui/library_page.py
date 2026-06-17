@@ -2,7 +2,7 @@ import os
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFontMetrics, QPixmap
-from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QMenu, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, LineEdit, Pivot, SmoothScrollArea, SubtitleLabel, TitleLabel
 
 from jmcomic_shelf.database import ShelfDatabase
@@ -16,12 +16,13 @@ from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
 class CoverCard(CardWidget):
     cover_width = 150
+    card_width = 178
 
     def __init__(self, record, parent=None):
         super().__init__(parent)
         self.record = record
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedWidth(178)
+        self.setFixedWidth(self.card_width)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -161,10 +162,17 @@ class LibraryPage(QWidget):
             grid_host.setStyleSheet('background: transparent;')
             grid = QGridLayout(grid_host)
             grid.setContentsMargins(0, 0, 0, 0)
-            grid.setHorizontalSpacing(12)
-            grid.setVerticalSpacing(12)
+            grid.setHorizontalSpacing(24)
+            grid.setVerticalSpacing(18)
+            grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             for index, record in enumerate(records):
-                grid.addWidget(CoverCard(record, grid_host), index // 5, index % 5)
+                card = CoverCard(record, grid_host)
+                grid.addWidget(card, index // 5, index % 5, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            for column in range(5):
+                grid.setColumnMinimumWidth(column, CoverCard.card_width)
+                grid.setColumnStretch(column, 0)
+            grid.setColumnStretch(5, 1)
+            grid.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum), 0, 5)
             self.content_layout.addWidget(grid_host)
 
         self.content_layout.addStretch(1)

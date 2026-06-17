@@ -1,5 +1,38 @@
 ﻿# Development Log
 
+## 2026-06-18 02:32:47 +08:00
+
+### 修改范围
+
+- 桌面端 Fluent UI 背景框与布局修复
+- 下载结果表格样式修复
+- 书库封面网格左对齐修复
+- 项目术语修正
+- 开发记录
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/styles.py`
+- `src/jmcomic_shelf/ui/download_page.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `development-log.md`
+
+### 具体内容
+
+- 根据用户反馈，把相关术语修正为“技术栈与限制”，避免后续对项目规则和 spec 的理解跑偏。
+- 为 `FluentWindow` 右侧 `stackedWidget` 增加深色 Fluent 面板背景、边框、圆角和内边距，让主内容区形成类似参考项目 LaunchDock 的背景框，而不是漂在纯色背景上。
+- 调整下载页结果表格：隐藏异常突兀的左侧行头，开启网格线，为表头和单元格增加竖向分隔线，并固定 `JM号` 与 `状态` 列宽，避免两列贴得太近。
+- 调整书库页封面网格：封面卡片固定宽度、网格左上对齐、使用固定横向间距，并在右侧加入伸展占位，让多余空间留在右边，不再根据书本数量平均分散整行。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，17 个桌面端相关测试全部通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，结果通过。
+- 本次没有触发真实下载；没有提交账号密码、cookie、token、代理凭据、下载内容、PDF、封面缓存或本地 `catalog.md`。
 ## 2026-06-18 02:02:07 +08:00
 
 ### 修改范围
@@ -297,3 +330,4 @@
 ### 楠岃瘉鎯呭喌
 
 - 鏈涓洪」鐩崗浣滆鏄庛€丼kill 鍜?README 鏂囨。鏇存柊锛屾湭杩愯搴旂敤鍗曞厓娴嬭瘯銆?- 宸插弬鑰?LaunchDock 鐨?`AGENTS.md`銆侀」鐩笓灞?Skill 鍜?`development-log.md` 缁撴瀯銆?
+

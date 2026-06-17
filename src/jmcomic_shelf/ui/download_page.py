@@ -35,10 +35,12 @@ class DownloadPage(QWidget):
 
         self.table = QTableWidget(0, 4, self)
         self.table.setHorizontalHeaderLabels(['JM号', '状态', '错误', '操作'])
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setColumnWidth(0, 150)
+        self.table.setColumnWidth(1, 130)
         prepare_table(self.table)
 
         self.status = QLabel('', self)

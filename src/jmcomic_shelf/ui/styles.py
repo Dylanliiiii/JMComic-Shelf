@@ -32,13 +32,20 @@ QTableWidget {
     color: #f5f0f1;
     border: 1px solid #493d41;
     border-radius: 8px;
-    gridline-color: #493d41;
+    gridline-color: #5a4a4f;
 }
 QHeaderView::section {
     background: #3a2f32;
     color: #f5f0f1;
     border: none;
-    padding: 8px;
+    border-right: 1px solid #5a4a4f;
+    border-bottom: 1px solid #5a4a4f;
+    padding: 8px 14px;
+}
+QTableWidget::item {
+    border-right: 1px solid #4d3f44;
+    padding-left: 14px;
+    padding-right: 14px;
 }
 """
 
@@ -50,6 +57,7 @@ def apply_page_style(widget: QWidget) -> None:
 
 def prepare_table(table: QTableWidget) -> None:
     table.setAlternatingRowColors(False)
-    table.setShowGrid(False)
+    table.setShowGrid(True)
+    table.verticalHeader().setVisible(False)
     table.setStyleSheet(DARK_CONTROL_STYLE)
     table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustIgnored)

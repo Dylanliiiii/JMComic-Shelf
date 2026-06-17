@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from qfluentwidgets import FluentIcon, FluentWindow, NavigationItemPosition, Theme, setTheme, setThemeColor
 
@@ -39,7 +40,15 @@ class MainWindow(FluentWindow):
 
         self.navigationInterface.setExpandWidth(180)
         self.navigationInterface.expand(useAni=False)
-        self.stackedWidget.setStyleSheet('QStackedWidget { background: transparent; }')
+        self.stackedWidget.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.stackedWidget.setContentsMargins(24, 18, 24, 24)
+        self.stackedWidget.setStyleSheet(
+            'QStackedWidget {'
+            '  background: #241b1f;'
+            '  border: 1px solid #34282c;'
+            '  border-radius: 8px;'
+            '}'
+        )
         self.stackedWidget.currentChanged.connect(self.reload_current_page)
 
     def reload_current_page(self):
