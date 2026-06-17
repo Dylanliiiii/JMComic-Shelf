@@ -908,7 +908,7 @@ class CatalogPlugin(JmOptionPlugin):
             'title': cls.clean_text(album.name),
             'link': cls.album_link(album.album_id),
             'authors': authors,
-            'tags': cls.clean_values(getattr(album, 'tags', None)),
+            'tags': cls.normalize_tags(cls.clean_values(getattr(album, 'tags', None))),
             'chapters': cls.build_chapters(album),
         }
 
@@ -929,6 +929,50 @@ class CatalogPlugin(JmOptionPlugin):
             if value and value not in result:
                 result.append(value)
         return result
+
+    @classmethod
+    def normalize_tags(cls, tags: list) -> list:
+        result = []
+        for tag in tags:
+            normalized = cls.clean_text(JmcomicText.to_zh_cn(tag))
+            if normalized and normalized not in result:
+                result.append(normalized)
+        return result
+
+    @classmethod
+    def normalize_catalog_tags(cls, filepath: str) -> bool:
+        if file_not_exists(filepath):
+            return False
+
+        changed = False
+        lines = []
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            for raw_line in f:
+                prefix, tags_text = cls.split_tag_line(raw_line.rstrip('\n'))
+                if prefix is None:
+                    lines.append(raw_line)
+                    continue
+
+                normalized_text = ', '.join(cls.normalize_tags(cls.split_tags(tags_text)))
+                new_line = f'{prefix}{normalized_text}'
+                if raw_line.endswith('\n'):
+                    new_line += '\n'
+                if new_line != raw_line:
+                    changed = True
+                lines.append(new_line)
+
+        if changed:
+            with open(filepath, 'w', encoding='utf-8-sig') as f:
+                f.writelines(lines)
+        return changed
+
+    @classmethod
+    def split_tag_line(cls, line: str):
+        label_index = line.find(cls.field_tags)
+        if label_index == -1:
+            return None, ''
+        prefix_end = label_index + len(cls.field_tags)
+        return line[:prefix_end], line[prefix_end:].strip()
 
     @staticmethod
     def album_link(album_id: str) -> str:
@@ -993,7 +1037,7 @@ class CatalogPlugin(JmOptionPlugin):
                 if field_line.startswith(cls.field_tags):
                     if current_item is not None:
                         tags_text = field_line[len(cls.field_tags):].strip()
-                        current_item['tags'] = cls.split_tags(tags_text)
+                        current_item['tags'] = cls.normalize_tags(cls.split_tags(tags_text))
                     continue
 
                 if field_line.startswith(cls.field_chapters):
@@ -1158,7 +1202,7 @@ class CatalogPlugin(JmOptionPlugin):
                     lines.append(f"{index}. {cls.icon_title} {cls.field_title}{item['title']}")
                 lines.append(f"   - {cls.icon_id} {cls.field_id}JM{item['id']}")
                 lines.append(f"   - {cls.icon_link} {cls.field_link}{item.get('link') or cls.album_link(item['id'])}")
-                lines.append(f"   - {cls.icon_tags} {cls.field_tags}{', '.join(item.get('tags', []))}")
+                lines.append(f"   - {cls.icon_tags} {cls.field_tags}{', '.join(cls.normalize_tags(item.get('tags', [])))}")
                 lines.append(f"   - {cls.icon_chapters} {cls.field_chapters}{cls.format_chapters(item.get('chapters', []))}")
                 if index != len(items):
                     lines.append('')

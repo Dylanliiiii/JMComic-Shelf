@@ -34,6 +34,7 @@ setup(
         'PySide6',
         'PySide6-Fluent-Widgets',
         'pycryptodome',
+        'zhconv',
     ],
     keywords=['python', 'jmcomic', '18comic', '禁漫天堂', 'NSFW'],
     classifiers=[

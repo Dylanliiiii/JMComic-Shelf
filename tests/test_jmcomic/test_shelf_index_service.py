@@ -71,3 +71,34 @@ class TestShelfIndexService(unittest.TestCase):
             self.assertEqual(records[0].pdf_path, pdf_path)
             self.assertEqual(records[0].album_dir, os.path.dirname(album_dir))
             self.assertTrue(os.path.exists(records[0].cover_path))
+
+    def test_rebuild_index_from_download_dir_merges_tags_from_catalog(self):
+        from tempfile import TemporaryDirectory
+
+        from PIL import Image
+
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.index_service import rebuild_index_from_download_dir
+
+        with TemporaryDirectory() as tmp:
+            album_dir = os.path.join(tmp, '作者A', 'JM211899-作品A', '第1章')
+            os.makedirs(album_dir)
+            Image.new('RGB', (120, 180), 'red').save(os.path.join(album_dir, '00001.jpg'))
+            with open(os.path.join(tmp, 'catalog.md'), 'w', encoding='utf-8-sig') as f:
+                f.write('# 作者A\n')
+                f.write('1. JM211899-作品A\n')
+                f.write('   - 标签：後宮, 巨乳\n')
+
+            db_path = os.path.join(tmp, 'app', 'shelf.db')
+            rebuild_index_from_download_dir(tmp, db_path, os.path.join(tmp, 'app', 'covers'))
+
+            db = ShelfDatabase(db_path)
+            db.open()
+            try:
+                records = db.query_albums('211899')
+                tags = db.list_tags()
+            finally:
+                db.close()
+
+            self.assertEqual(records[0].tags, ['后宫', '巨乳'])
+            self.assertEqual(tags, ['后宫', '巨乳'])

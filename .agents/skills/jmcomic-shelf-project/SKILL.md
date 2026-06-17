@@ -44,7 +44,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - 按作者分组。
 - 每个作者下独立编号。
 - 同一作者下按 JM ID 去重更新。
-- 保留来源标题、作者和标签文本，不强制繁简转换。
+- 保留来源标题和作者文本；标签统一转换为中文简体后写入，方便搜索和分类筛选。
 - 记录标题、ID、链接、标签、章节。
 - 从本次下载成功的第一章第一张图片生成 base64 封面。
 - 使用 HTML `<img>` 控制封面宽度和顶部对齐。
@@ -71,6 +71,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - `ui/`：PySide6 + QFluentWidgets 页面。
 
 书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有漫画目录和 PDF，再显示结果。
+SQLite 标签应与 `catalog.md` 一致统一保存为中文简体；书库页的“分类”按钮应展开当前书库出现过的全部标签，并支持按单个标签筛选漫画。
 
 ### Windows 脚本
 

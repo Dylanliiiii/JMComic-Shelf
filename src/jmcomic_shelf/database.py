@@ -2,6 +2,8 @@ import os
 import sqlite3
 from typing import List
 
+from jmcomic.jm_toolkit import JmcomicText
+
 from .models import AlbumRecord
 
 
@@ -86,6 +88,9 @@ class ShelfDatabase:
         row = conn.execute(f'SELECT id FROM {table} WHERE name = ?', (name,)).fetchone()
         return int(row['id'])
 
+    def _normalize_tag(self, tag: str) -> str:
+        return str(JmcomicText.to_zh_cn(tag)).strip()
+
     def upsert_album(self, record: AlbumRecord) -> None:
         conn = self._require_conn()
         with conn:
@@ -112,6 +117,9 @@ class ShelfDatabase:
                 conn.execute('INSERT OR IGNORE INTO album_authors VALUES (?, ?)', (record.jm_id, author_id))
 
             for tag in record.tags:
+                tag = self._normalize_tag(tag)
+                if not tag:
+                    continue
                 tag_id = self._id_for('tags', tag)
                 conn.execute('INSERT OR IGNORE INTO album_tags VALUES (?, ?)', (record.jm_id, tag_id))
 
@@ -168,6 +176,34 @@ class ShelfDatabase:
         rows = conn.execute(
             f'SELECT * FROM albums a {where} ORDER BY updated_at DESC, jm_id DESC',
             params,
+        ).fetchall()
+        return [self._row_to_album(row) for row in rows]
+
+    def list_tags(self) -> list[str]:
+        conn = self._require_conn()
+        rows = conn.execute(
+            """
+            SELECT DISTINCT t.name
+            FROM tags t
+            JOIN album_tags at ON at.tag_id = t.id
+            ORDER BY t.name
+            """
+        ).fetchall()
+        return [row['name'] for row in rows]
+
+    def query_albums_by_tag(self, tag: str) -> List[AlbumRecord]:
+        conn = self._require_conn()
+        tag = self._normalize_tag(tag)
+        rows = conn.execute(
+            """
+            SELECT a.*
+            FROM albums a
+            JOIN album_tags at ON at.jm_id = a.jm_id
+            JOIN tags t ON t.id = at.tag_id
+            WHERE t.name = ?
+            ORDER BY a.updated_at DESC, a.jm_id DESC
+            """,
+            (tag,),
         ).fetchall()
         return [self._row_to_album(row) for row in rows]
 

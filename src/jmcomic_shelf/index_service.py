@@ -55,6 +55,7 @@ def rebuild_index_from_download_dir(download_dir: str, db_path: str, cover_cache
 
 def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[AlbumRecord]:
     by_id: OrderedDict[str, AlbumRecord] = OrderedDict()
+    catalog_by_id = _catalog_records_by_id(download_dir)
     for root, dirs, files in os.walk(download_dir):
         dirs[:] = [name for name in dirs if name not in {'.git', '__pycache__'}]
         author = _author_from_album_root(download_dir, root)
@@ -95,7 +96,45 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
             if not record.title:
                 record.title = pdf_match.group('title').strip()
 
+    for jm_id, record in by_id.items():
+        _merge_catalog_record(record, catalog_by_id.get(jm_id))
+
     return list(by_id.values())
+
+
+def _catalog_records_by_id(download_dir: str) -> dict[str, dict]:
+    catalog_path = os.path.join(download_dir, 'catalog.md')
+    catalog = CatalogPlugin.read_catalog(catalog_path)
+    by_id = {}
+    for author, items in catalog.items():
+        for item in items:
+            jm_id = str(item.get('id', '')).removeprefix('JM').removeprefix('jm')
+            if not jm_id:
+                continue
+            record = by_id.setdefault(jm_id, {'authors': [], 'tags': [], 'link': '', 'chapters': []})
+            if author and author not in record['authors']:
+                record['authors'].append(author)
+            for tag in item.get('tags', []):
+                if tag and tag not in record['tags']:
+                    record['tags'].append(tag)
+            if item.get('link') and not record['link']:
+                record['link'] = item['link']
+            if item.get('chapters') and not record['chapters']:
+                record['chapters'] = item['chapters']
+    return by_id
+
+
+def _merge_catalog_record(record: AlbumRecord, catalog_record: dict | None) -> None:
+    if not catalog_record:
+        return
+    for author in catalog_record.get('authors', []):
+        if author and author not in record.authors:
+            record.authors.append(author)
+    record.tags = list(catalog_record.get('tags', []))
+    if catalog_record.get('link') and not record.link:
+        record.link = catalog_record['link']
+    if catalog_record.get('chapters') and not record.chapters:
+        record.chapters = catalog_record['chapters']
 
 
 def _author_from_album_root(download_dir: str, root: str) -> str:

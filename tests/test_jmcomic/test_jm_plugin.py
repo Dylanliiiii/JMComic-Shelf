@@ -156,7 +156,7 @@ class Test_CatalogPlugin(unittest.TestCase):
                 '   - \U0001f4d1 \u7ae0\u8282\uff1a\u7b2c1\u8bdd \u4f5c\u54c1A (id: 211899)\n',
             )
 
-    def test_catalog_plugin_preserves_original_text(self):
+    def test_catalog_plugin_keeps_title_and_author_but_normalizes_tags_to_simplified_chinese(self):
         from jmcomic.jm_plugin import CatalogPlugin
 
         album = FakeCatalogAlbum(
@@ -175,7 +175,35 @@ class Test_CatalogPlugin(unittest.TestCase):
                 content = f.read()
 
             self.assertIn('\u7570\u4e16\u754c\u6deb\u4e82\u5f8c\u5bae', content)
-            self.assertIn('\u5f8c\u5bae', content)
+            self.assertIn('\u8d64\u6708\u307f\u3085\u3046\u3068', content)
+            self.assertIn('\u540e\u5bab, \u5de8\u4e73', content)
+            self.assertNotIn('\u6807\u7b7e\uff1a\u5f8c\u5bae', content)
+
+    def test_catalog_plugin_normalizes_only_tag_lines_in_existing_catalog(self):
+        from jmcomic.jm_plugin import CatalogPlugin
+
+        with TemporaryDirectory() as tmp:
+            catalog_path = os.path.join(tmp, 'catalog.md')
+            with open(catalog_path, 'w', encoding='utf-8-sig') as f:
+                f.write(
+                    '# \u8d64\u6708\u307f\u3085\u3046\u3068\n'
+                    '1. \U0001f4d6 \u6807\u9898\uff1a\u7570\u4e16\u754c\u6deb\u4e82\u5f8c\u5bae\n'
+                    '   - \U0001f194 ID\uff1aJM211899\n'
+                    '   - \U0001f517 \u94fe\u63a5\uff1ahttps://18comic.vip/album/211899/\n'
+                    '   - \U0001f3f7\ufe0f \u6807\u7b7e\uff1a\u5f8c\u5bae, \u5de8\u4e73, \u9023\u8932\u889c\n'
+                    '   - \U0001f4d1 \u7ae0\u8282\uff1a\u7b2c1\u8bdd \u7570\u4e16\u754c\u6deb\u4e82\u5f8c\u5bae (id: 211899)\n'
+                )
+
+            changed = CatalogPlugin.normalize_catalog_tags(catalog_path)
+
+            with open(catalog_path, encoding='utf-8-sig') as f:
+                content = f.read()
+
+            self.assertTrue(changed)
+            self.assertIn('\u6807\u9898\uff1a\u7570\u4e16\u754c\u6deb\u4e82\u5f8c\u5bae', content)
+            self.assertIn('# \u8d64\u6708\u307f\u3085\u3046\u3068', content)
+            self.assertIn('\u6807\u7b7e\uff1a\u540e\u5bab, \u5de8\u4e73, \u8fde\u88e4\u889c', content)
+            self.assertIn('\u7ae0\u8282\uff1a\u7b2c1\u8bdd \u7570\u4e16\u754c\u6deb\u4e82\u5f8c\u5bae', content)
 
 
 class Test_ShelfIndexPlugin(unittest.TestCase):

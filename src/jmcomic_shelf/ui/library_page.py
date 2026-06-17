@@ -137,6 +137,8 @@ class LibraryPage(QWidget):
         self.pending_columns = 0
         self.batch_mode = False
         self.selected_ids = set()
+        self.available_tags = []
+        self.active_tag = ''
         self.sync_thread = None
         self.sync_worker = None
         self.setObjectName('libraryPage')
@@ -154,7 +156,7 @@ class LibraryPage(QWidget):
         title = TitleLabel('本地书库', self)
         self.search_input = LineEdit(self)
         self.search_input.setPlaceholderText('搜索 JM号 / 作者 / 标签')
-        self.search_input.textChanged.connect(self.reload)
+        self.search_input.textChanged.connect(self.on_search_changed)
 
         note = CaptionLabel(
             '浏览当前下载目录里的本地漫画；可输入 JM 号、作者或标签筛选，点击封面打开 PDF，右键可定位文件。',
@@ -163,8 +165,10 @@ class LibraryPage(QWidget):
         note.setWordWrap(True)
 
         self.filter_pivot = Pivot(self)
-        self.filter_pivot.addItem('all', '全部', lambda: self.search_input.clear())
+        self.filter_pivot.addItem('all', '全部', self.clear_filter)
         self.filter_pivot.setCurrentItem('all')
+        self.category_button = PushButton('分类', self)
+        self.category_button.clicked.connect(self.toggle_category_panel)
         self.batch_button = PushButton('批量管理', self)
         self.batch_button.clicked.connect(self.toggle_batch_mode)
         filter_row = QHBoxLayout()
@@ -174,9 +178,20 @@ class LibraryPage(QWidget):
         filter_host_layout = QHBoxLayout(self.filter_host)
         filter_host_layout.setContentsMargins(10, 4, 10, 4)
         filter_host_layout.addWidget(self.filter_pivot)
+        self.filter_host.setFixedHeight(48)
+        self.category_button.setFixedHeight(self.filter_host.height())
         filter_row.addWidget(self.filter_host)
+        filter_row.addWidget(self.category_button)
         filter_row.addStretch(1)
         filter_row.addWidget(self.batch_button)
+
+        self.category_host = QFrame(self)
+        self.category_host.setStyleSheet(self._filter_host_style())
+        self.category_layout = QGridLayout(self.category_host)
+        self.category_layout.setContentsMargins(10, 8, 10, 8)
+        self.category_layout.setHorizontalSpacing(8)
+        self.category_layout.setVerticalSpacing(8)
+        self.category_host.setVisible(False)
 
         self.batch_bar = QHBoxLayout()
         self.batch_bar.setContentsMargins(0, 0, 0, 0)
@@ -218,12 +233,25 @@ class LibraryPage(QWidget):
         layout.addWidget(self.search_input)
         layout.addWidget(note)
         layout.addLayout(filter_row)
+        layout.addWidget(self.category_host)
         layout.addWidget(self.batch_host)
         self.action_status = CaptionLabel('', self)
         self.action_status.setWordWrap(True)
         self.action_status.setVisible(False)
         layout.addWidget(self.action_status)
         layout.addWidget(self.scroll, 1)
+        self.reload()
+
+    def clear_filter(self):
+        self.active_tag = ''
+        self.search_input.blockSignals(True)
+        self.search_input.clear()
+        self.search_input.blockSignals(False)
+        self.reload()
+
+    def on_search_changed(self):
+        if self.active_tag:
+            self.active_tag = ''
         self.reload()
 
     def reload(self, sync_index: bool = True):
@@ -238,10 +266,15 @@ class LibraryPage(QWidget):
         db = ShelfDatabase(get_database_path(settings.app_data_dir))
         try:
             db.open()
-            self.records = db.query_albums(query)
+            self.available_tags = db.list_tags()
+            if self.active_tag:
+                self.records = db.query_albums_by_tag(self.active_tag)
+            else:
+                self.records = db.query_albums(query)
             self.load_error = sync_error
         except Exception as e:
             self.records = []
+            self.available_tags = []
             self.load_error = str(e)
         finally:
             db.close()
@@ -308,6 +341,8 @@ class LibraryPage(QWidget):
         self._clear_content()
         self.filter_pivot.setItemText('all', f'全部 · {len(self.records)} 本')
         self.filter_host.setStyleSheet(self._filter_host_style())
+        self.category_host.setStyleSheet(self._filter_host_style())
+        self.render_tag_buttons()
         if not self.records:
             self.content_layout.addWidget(self._empty_card())
             self.content_layout.addStretch(1)
@@ -339,6 +374,36 @@ class LibraryPage(QWidget):
 
         self.content_layout.addStretch(1)
         self.update_batch_actions()
+
+    def toggle_category_panel(self):
+        self.category_host.setVisible(not self.category_host.isVisible())
+        if self.category_host.isVisible():
+            self.render_tag_buttons()
+
+    def apply_tag_filter(self, tag: str):
+        self.active_tag = tag
+        self.search_input.blockSignals(True)
+        self.search_input.clear()
+        self.search_input.blockSignals(False)
+        self.reload(sync_index=False)
+
+    def render_tag_buttons(self):
+        while self.category_layout.count():
+            item = self.category_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        if not self.available_tags:
+            self.category_layout.addWidget(CaptionLabel('暂无标签', self.category_host), 0, 0)
+            return
+
+        columns = max(1, min(6, self._column_count()))
+        for index, tag in enumerate(self.available_tags):
+            button_cls = PrimaryPushButton if tag == self.active_tag else PushButton
+            button = button_cls(tag, self.category_host)
+            button.clicked.connect(lambda checked=False, value=tag: self.apply_tag_filter(value))
+            self.category_layout.addWidget(button, index // columns, index % columns)
 
     def _column_count(self):
         available_width = max(1, self.scroll.viewport().width() - 18)

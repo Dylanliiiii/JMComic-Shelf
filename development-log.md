@@ -1,5 +1,86 @@
 ﻿# Development Log
 
+## 2026-06-18 07:53:26 +08:00
+
+### 修改范围
+
+- 本地书库分类标签展开修复。
+- 下载目录重建索引时合并 `catalog.md` 标签。
+- 本地书库筛选按钮尺寸统一。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `development-log.md`
+
+### 具体内容
+
+- 排查确认“分类”展开后只显示“暂无标签”的根因是书库页会从下载目录重建 SQLite 索引，但扫描现有作者目录、作品目录和 PDF 时没有读取下载根目录下的 `catalog.md`，导致已有漫画记录没有标签关系。
+- 在 `rebuild_index_from_download_dir()` 的扫描结果中按 JM ID 合并 `catalog.md` 里的作者、标签、链接和章节信息；标签仍通过 `CatalogPlugin.read_catalog()` 和数据库写入流程统一转换为中文简体，标题和作者保留来源文本。
+- 将“分类”按钮高度固定为与左侧“全部”筛选块一致，避免截图中两个按钮大小不统一。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、spec 和 plan：上次已同步记录标签简体化和分类筛选规则，本次是修复既有规则落地问题，无需再改文档正文。
+- 开工前读取本地 `AGENTS.md` 与两个项目专属 Skill 时，终端输出存在 mojibake 乱码；本次按用户消息中贴出的正常 UTF-8 规则以及已有开发记录继续执行，未在本次一并修复协作文件编码。
+
+### 验证情况
+
+- 已按 TDD 新增失败测试 `test_rebuild_index_from_download_dir_merges_tags_from_catalog`，确认旧行为会在重建索引后丢失 `catalog.md` 中的标签；修复后通过。
+- 已按 TDD 新增失败测试 `test_category_button_uses_same_height_as_all_filter`，确认旧行为中“分类”按钮高度与“全部”筛选块不一致；修复后通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_library_page -v`，6 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_index_service -v`，4 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，30 项通过；`zhconv` 和 Qt 退出阶段仍有既有 `ResourceWarning` 提示，但测试结果通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p test_jm_plugin.py -k catalog -v`，5 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile ...`，通过。
+- 已运行 offscreen 书库页烟测，确认“分类”按钮和“全部”筛选块高度均为 `48`，分类面板默认收起。
+
+## 2026-06-18 07:29:25 +08:00
+
+### 修改范围
+
+- `catalog.md` 标签繁简统一规则。
+- 桌面端 SQLite 标签存储与分类筛选。
+- 本地书库标签分类 UI。
+- README、AGENTS、项目专属 Skill、桌面应用设计文档和实施计划同步。
+
+### 涉及文件
+
+- `src/jmcomic/jm_plugin.py`
+- `src/jmcomic_shelf/database.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_jm_plugin.py`
+- `tests/test_jmcomic/test_shelf_database.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `setup.py`
+- `development-log.md`
+
+### 具体内容
+
+- 调整 `CatalogPlugin`：标题、作者、章节和封面保持来源文本；标签在写入 `catalog.md` 前统一转换为中文简体。
+- 新增 `CatalogPlugin.normalize_catalog_tags(filepath)`，用于只重写已有 `catalog.md` 中“标签：”后面的标签文本，不改标题、作者、章节和封面。
+- 已对当前桌面端设置下载目录下的本地 `catalog.md` 执行一次标签简体化处理；该文件属于用户下载目录，不进入 git diff。
+- `ShelfDatabase` 写入标签时统一转为简体，并新增 `list_tags()` 和 `query_albums_by_tag()`，用于列出所有已出现标签和按单个标签精确筛选漫画。
+- 本地书库页在“全部”旁新增“分类”按钮；点击后展开当前书库里出现过的标签按钮，点击标签后按该标签筛选作品，点击“全部”返回完整列表。
+- 将 `zhconv` 加入运行依赖，避免标签简体化在非开发环境中因缺少依赖而退回原文本。
+- README、英文 README、`AGENTS.md`、项目专属 Skill、spec 和 plan 已同步记录“只统一标签，不改标题/作者”的规则，以及本地书库分类筛选能力。
+- 维护 Skill 仅描述通用收尾流程，本次规则变化不需要修改。
+
+### 验证情况
+
+- 已按 TDD 先新增失败测试，确认旧行为会保留繁体标签、数据库缺少标签列表/精确筛选接口、书库页缺少分类展开与标签筛选入口。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p test_jm_plugin.py -k catalog -v`，5 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，28 项通过；`zhconv` 和 Qt 退出阶段有 `ResourceWarning` 提示，但测试结果通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile ...`，通过。第一次直接运行 `py_compile` 时因源码目录已有 `__pycache__` 写入权限失败，改用临时字节码目录后通过。
+- 已运行 offscreen `MainWindow` 初始化烟测，窗口标题输出为 `JMComic Shelf`。
+- 已确认 `jmcomic-option.yml` 仍由 `.gitignore` 忽略，git diff 中没有账号密码、cookie、token、代理凭据、下载内容、PDF、封面或用户本地 `catalog.md`。
+
 ## 2026-06-18 07:08:52 +08:00
 
 ### 修改范围

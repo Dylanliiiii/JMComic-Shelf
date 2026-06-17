@@ -50,7 +50,7 @@ Compared with the upstream project, this repository currently adds or changes:
 - a new `catalog` plugin that updates a local Markdown library catalog after album downloads;
 - author-grouped catalog sections;
 - duplicate-safe catalog updates by JM ID;
-- preservation of the original title, author, and tag text returned by the source site, without forced Simplified/Traditional Chinese conversion;
+- preservation of the original title and author text returned by the source site, while tags are normalized to Simplified Chinese for consistent search and category filtering;
 - embedded cover images generated from the first successfully downloaded image of the album;
 - configurable catalog cover width, currently defaulting to `120`;
 - a shorter download path rule to avoid repeated long titles in Windows paths;
