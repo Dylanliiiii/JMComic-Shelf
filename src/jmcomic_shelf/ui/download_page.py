@@ -57,7 +57,7 @@ class DownloadPage(QWidget):
         layout.setSpacing(16)
 
         header = QHBoxLayout()
-        header.addWidget(TitleLabel('下载', self))
+        header.addWidget(TitleLabel('禁漫下载', self))
         header.addStretch(1)
         self.start_button = PrimaryPushButton('开始下载', self)
         self.start_button.clicked.connect(self.start_download)
@@ -106,6 +106,7 @@ class DownloadPage(QWidget):
         self.status.setText(f'已加入 {len(self.tasks)} 个下载任务，准备开始。')
         self.progress.setValue(0)
         self.render_tasks()
+        self.input.clear()
         self.run_tasks(self.tasks)
 
     def retry_task(self, task: DownloadTask):
@@ -151,10 +152,11 @@ class DownloadPage(QWidget):
     @Slot()
     def on_all_finished(self):
         failed_count = sum(1 for task in self.tasks if task.status == 'failed')
+        self.progress.setValue(0)
         if failed_count:
             self.status.setText(f'下载结束：{failed_count} 个任务失败，其余任务已更新书库索引。')
         else:
-            self.status.setText('全部下载完成，已更新书库索引。')
+            self.status.setText('全部已完成。')
         self.start_button.setEnabled(True)
 
     @Slot()

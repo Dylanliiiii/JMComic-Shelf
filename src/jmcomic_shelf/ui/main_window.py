@@ -34,9 +34,9 @@ class MainWindow(FluentWindow):
         self.detail_page.setObjectName('detailPage')
         self.settings_page.setObjectName('settingsPage')
 
-        self.addSubInterface(self.library_page, FluentIcon.LIBRARY, '书库')
-        self.addSubInterface(self.download_page, FluentIcon.DOWNLOAD, '下载')
-        self.addSubInterface(self.detail_page, FluentIcon.INFO, '查看详情')
+        self.addSubInterface(self.library_page, FluentIcon.LIBRARY, '本地书库')
+        self.addSubInterface(self.download_page, FluentIcon.DOWNLOAD, '禁漫下载')
+        self.addSubInterface(self.detail_page, FluentIcon.INFO, '禁漫预览')
         self.addSubInterface(
             self.settings_page,
             FluentIcon.SETTING,

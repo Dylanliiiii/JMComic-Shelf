@@ -23,8 +23,9 @@ class DetailPage(QWidget):
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(16)
 
+        layout.addWidget(TitleLabel('禁漫预览', self))
+
         header = QHBoxLayout()
-        header.addWidget(TitleLabel('查看详情', self))
         self.input = LineEdit(self)
         self.input.setPlaceholderText('输入 JM 号')
         self.query_button = PrimaryPushButton('查看详情', self)

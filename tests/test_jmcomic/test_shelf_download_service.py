@@ -78,3 +78,39 @@ class TestShelfDownloadService(unittest.TestCase):
                 db.close()
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0].pdf_path, pdf_path)
+
+    def test_download_page_clears_input_after_starting_tasks(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.ui.download_page import DownloadPage
+
+        app = QApplication.instance() or QApplication([])
+        page = DownloadPage()
+        page.input.setPlainText('211899 123456')
+        started = []
+        page.run_tasks = lambda tasks: started.extend(tasks)
+
+        page.start_download()
+
+        self.assertEqual(page.input.toPlainText(), '')
+        self.assertEqual([task.jm_id for task in started], ['211899', '123456'])
+        self.assertIsNotNone(app)
+
+    def test_download_page_resets_progress_when_all_tasks_finish(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.download_service import DownloadTask
+        from jmcomic_shelf.ui.download_page import DownloadPage
+
+        app = QApplication.instance() or QApplication([])
+        page = DownloadPage()
+        page.tasks = [DownloadTask('211899', status='success')]
+        page.progress.setValue(100)
+
+        page.on_all_finished()
+
+        self.assertEqual(page.progress.value(), 0)
+        self.assertEqual(page.status.text(), '全部已完成。')
+        self.assertIsNotNone(app)

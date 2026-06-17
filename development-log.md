@@ -1,5 +1,44 @@
 ﻿# Development Log
 
+## 2026-06-18 06:29:06 +08:00
+
+### 修改范围
+
+- 桌面端本地书库、禁漫下载、禁漫预览页面细节优化。
+- 下载任务输入和进度条状态行为。
+- 本地书库封面网格重排性能优化。
+- README、桌面应用设计文档和实施计划同步。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `src/jmcomic_shelf/ui/download_page.py`
+- `src/jmcomic_shelf/ui/detail_page.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `README.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 左侧导航和页面标题改为“本地书库”“禁漫下载”“禁漫预览”，保留“设置”不变。
+- 禁漫下载页开始下载后会先把输入的 JM 号写入任务表格，然后立即清空输入框，方便下一次输入。
+- 下载任务全部结束后，进度条归零；成功时显示“全部已完成。”，失败时继续显示失败数量，表格保留成功和失败记录。
+- 禁漫预览页标题单独成行，JM 号输入框和查看按钮移动到标题下方。
+- 本地书库页的“全部 · N 本”筛选器增加轻量背景框，同时保留青色下划线。
+- 本地书库页在左侧导航反复展开或收起时，不再立即频繁重排封面网格，而是通过短延迟合并宽度变化，降低明显卡顿。
+- README、spec 和 plan 已同步记录本次用户可见功能与行为变化；`AGENTS.md` 和两个项目专属 Skill 只需沿用既有同步规则，无需改动。
+
+### 验证情况
+
+- 已按 TDD 先新增失败测试，覆盖下载开始后清空输入框、下载全部完成后进度归零，以及书库页宽度变化时延迟重排封面网格。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，23 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py`，通过。
+- 已运行 offscreen `MainWindow` 初始化烟测，确认窗口可创建。
+
 ## 2026-06-18 03:48:42 +08:00
 
 ### 修改范围

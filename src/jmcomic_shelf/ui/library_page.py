@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QFontMetrics, QPixmap
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, Pivot, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
@@ -113,6 +113,7 @@ class LibraryPage(QWidget):
         self.records = []
         self.load_error = ''
         self.current_columns = 0
+        self.pending_columns = 0
         self.batch_mode = False
         self.selected_ids = set()
         self.setObjectName('libraryPage')
@@ -122,7 +123,12 @@ class LibraryPage(QWidget):
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(16)
 
-        title = TitleLabel('书库', self)
+        self.resize_render_timer = QTimer(self)
+        self.resize_render_timer.setSingleShot(True)
+        self.resize_render_timer.setInterval(150)
+        self.resize_render_timer.timeout.connect(self.apply_pending_resize_render)
+
+        title = TitleLabel('本地书库', self)
         self.search_input = LineEdit(self)
         self.search_input.setPlaceholderText('搜索 JM号 / 作者 / 标签')
         self.search_input.textChanged.connect(self.reload)
@@ -140,7 +146,12 @@ class LibraryPage(QWidget):
         self.batch_button.clicked.connect(self.toggle_batch_mode)
         filter_row = QHBoxLayout()
         filter_row.setContentsMargins(0, 0, 0, 0)
-        filter_row.addWidget(self.filter_pivot)
+        self.filter_host = QFrame(self)
+        self.filter_host.setStyleSheet(self._filter_host_style())
+        filter_host_layout = QHBoxLayout(self.filter_host)
+        filter_host_layout.setContentsMargins(10, 4, 10, 4)
+        filter_host_layout.addWidget(self.filter_pivot)
+        filter_row.addWidget(self.filter_host)
         filter_row.addStretch(1)
         filter_row.addWidget(self.batch_button)
 
@@ -219,6 +230,11 @@ class LibraryPage(QWidget):
             return
         columns = self._column_count()
         if self.records and columns != self.current_columns:
+            self.pending_columns = columns
+            self.resize_render_timer.start()
+
+    def apply_pending_resize_render(self):
+        if self.records and self.pending_columns and self.pending_columns != self.current_columns:
             self.render_records()
 
     def _sync_index_from_settings(self, settings):
@@ -233,6 +249,7 @@ class LibraryPage(QWidget):
     def render_records(self):
         self._clear_content()
         self.filter_pivot.setItemText('all', f'全部 · {len(self.records)} 本')
+        self.filter_host.setStyleSheet(self._filter_host_style())
         if not self.records:
             self.content_layout.addWidget(self._empty_card())
             self.content_layout.addStretch(1)
@@ -269,6 +286,15 @@ class LibraryPage(QWidget):
         available_width = max(1, self.scroll.viewport().width() - 18)
         spacing = 24
         return max(1, (available_width + spacing) // (CoverCard.card_width + spacing))
+
+    def _filter_host_style(self):
+        if isDarkTheme():
+            background = '#34272c'
+            border = '#46363b'
+        else:
+            background = '#f3ecf0'
+            border = '#e4d8de'
+        return f'QFrame {{ background: {background}; border: 1px solid {border}; border-radius: 8px; }}'
 
     def _empty_card(self):
         card = QFrame(self.content)
