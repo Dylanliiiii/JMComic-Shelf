@@ -27,6 +27,8 @@ dependencies = [
     "commonx>=0.6.38",
     "curl-cffi",
     "pillow",
+    "PySide6",
+    "PySide6-Fluent-Widgets",
     "pycryptodome",
     "pyyaml",
 ]
@@ -39,6 +41,7 @@ Documentation = "https://jmcomic.readthedocs.io"
 [project.scripts]
 jmcomic = "jmcomic.cli:main"
 jmv = "jmcomic.cli:view_main"
+jmcomic-shelf = "jmcomic_shelf.app:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "jmcomic.__version__"}

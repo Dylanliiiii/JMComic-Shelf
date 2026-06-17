@@ -31,6 +31,8 @@ setup(
         'commonX',
         'PyYAML',
         'Pillow',
+        'PySide6',
+        'PySide6-Fluent-Widgets',
         'pycryptodome',
     ],
     keywords=['python', 'jmcomic', '18comic', '禁漫天堂', 'NSFW'],
@@ -51,6 +53,7 @@ setup(
         'console_scripts': [
             'jmcomic = jmcomic.cli:main',
             'jmv = jmcomic.cli:view_main',
+            'jmcomic-shelf = jmcomic_shelf.app:main',
         ]
     }
 )
