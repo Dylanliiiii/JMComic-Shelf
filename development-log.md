@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-17 21:32:32 +08:00
+
+### 修改范围
+
+- 本地项目目录命名
+- 项目文档与协作说明检查
+
+### 涉及文件
+
+- `development-log.md`
+
+### 具体内容
+
+- 准备将本地项目文件夹从 `JMComic-Crawler-Python` 重命名为 `JMComic-Shelf`，与 GitHub 仓库名保持一致。
+- 检查 README、英文 README、`AGENTS.md` 和项目专属 Skill 中的 `JMComic-Crawler-Python` 引用，确认这些引用均指向上游原作者项目，应保留作为来源说明，不应误改为当前仓库名。
+- 确认当前仓库远程仍为 `origin -> Dylanliiiii/JMComic-Shelf`，`upstream -> hect0x7/JMComic-Crawler-Python`。
+
+### 验证情况
+
+- 已运行文本检索，确认没有需要修改的本地旧目录名引用。
+- 已确认 `D:\Others\JMComic-Shelf` 当前不存在，可以用于重命名。
+
 ## 2026-06-17 21:31:00 +08:00
 
 ### 修改范围
