@@ -125,6 +125,7 @@ python -m py_compile src\jmcomic\jm_plugin.py
 ```
 
 - 修改 README、AGENTS、Skill 或开发记录时，至少检查相关链接、路径和项目名是否一致。
+- 文档或开发记录中如果提到用户提供的参考项目、教程、工具或外部资料，应尽量写出完整 URL，不能只写项目名，方便新对话或其他智能体追溯来源。
 - 修改脚本时，检查是否仍引用正确的 `jmcomic-option.yml` 和可执行文件路径。
 - 每次修改代码或文档后，检查 README、`AGENTS.md`、项目专属 Skill、开发记录是否需要同步更新。
 

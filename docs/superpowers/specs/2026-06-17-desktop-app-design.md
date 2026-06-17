@@ -9,9 +9,9 @@
 ## 技术方向
 
 - GUI：PySide6 + QFluentWidgets。
-- 风格：Windows 原生 Fluent 风格，参考 `ok-oldking/ok-script` 的工具型应用体验。
+- 风格：Windows 原生 Fluent 风格，参考 `ok-oldking/ok-script` 的工具型应用体验：https://github.com/ok-oldking/ok-script
 - 下载能力：继续复用当前 `jmcomic` Python API、CLI、下载器和插件体系。
-- 打包方向：后续研究 `ok-oldking/pyappify`，不默认使用 PyInstaller；第一版 GUI 不把自动更新作为核心阻塞项。
+- 打包方向：后续研究 `ok-oldking/pyappify`，不默认使用 PyInstaller；第一版 GUI 不把自动更新作为核心阻塞项：https://github.com/ok-oldking/pyappify
 
 ## 应用结构
 
@@ -202,8 +202,8 @@ SQLite 建议表：
 - 重写上游下载器。
 - 删除 `catalog.md`。
 
-## 待用户确认
+## 已确认决策
 
-- 下载页是否需要第一版就支持失败重试按钮，还是先只显示失败摘要。
-- 查看详情页是否需要保存查询历史。
-- 设置页是否第一版就暴露“应用数据目录迁移”，还是先只显示当前路径和清理缓存。
+- 下载页第一版支持失败重试按钮。
+- 查看详情页第一版不保存查询历史。
+- 设置页第一版只显示应用数据目录和清理缓存，不做应用数据目录迁移。

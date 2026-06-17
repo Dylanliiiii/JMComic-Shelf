@@ -1,5 +1,38 @@
 # Development Log
 
+## 2026-06-18 00:03:12 +08:00
+
+### 修改范围
+
+- 外部参考链接记录规则
+- 桌面应用设计文档确认项收束
+- 桌面应用 v1 实现计划
+- 项目协作说明
+- 项目专属 Skill
+- 开发记录
+
+### 涉及文件
+
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 用户确认设计文档中的三个默认建议：下载页第一版支持失败重试按钮；查看详情页第一版不保存查询历史；设置页第一版只显示应用数据目录和清理缓存，不做应用数据目录迁移。
+- 将设计文档中的“待用户确认”改为“已确认决策”，避免后续实现计划存在悬空项。
+- 在设计文档中补充完整参考链接：`ok-oldking/ok-script` 使用 `https://github.com/ok-oldking/ok-script`，`ok-oldking/pyappify` 使用 `https://github.com/ok-oldking/pyappify`。
+- 用户要求后续文档或开发记录引用参考项目、教程、工具或外部资料时，应尽量保留完整 URL，不能只写项目名；已同步写入 `AGENTS.md` 和项目专属 Skill，方便新对话或其他智能体追溯来源。
+- 新增桌面应用 v1 实现计划，拆分为设置路径、SQLite、封面缓存、索引服务、索引插件、下载服务、文件操作、桌面入口、UI 页面、README 和最终验证等任务。
+
+### 验证情况
+
+- 本次为协作规则、设计文档和实现计划更新，未运行代码单元测试。
+- 已检查文档内容未记录账号、密码、cookie、token、真实本地下载目录、PDF 或 `catalog.md` 内容。
+
 ## 2026-06-17 23:57:24 +08:00
 
 ### 修改范围
