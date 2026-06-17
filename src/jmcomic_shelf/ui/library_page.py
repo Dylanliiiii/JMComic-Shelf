@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QDesktopServices, QFontMetrics, QPixmap
+from PySide6.QtGui import QAction, QFont, QFontMetrics, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -18,6 +18,8 @@ from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
 from jmcomic_shelf.index_service import group_by_author
 from jmcomic_shelf.paths import get_database_path
+
+from .styles import apply_page_style
 
 
 class CoverCard(QFrame):
@@ -85,6 +87,7 @@ class LibraryPage(QWidget):
         super().__init__(parent)
         self.records = []
         self.load_error = ''
+        apply_page_style(self)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -92,12 +95,16 @@ class LibraryPage(QWidget):
 
         header = QHBoxLayout()
         title = StrongBodyLabel('书库')
+        title.setFont(QFont(self.font().family(), 16, QFont.Bold))
         self.search_input = LineEdit()
         self.search_input.setPlaceholderText('搜索 JM号 / 作者 / 标签')
         self.search_input.textChanged.connect(self.reload)
         header.addWidget(title)
         header.addStretch(1)
         header.addWidget(self.search_input, 1)
+
+        note = BodyLabel('浏览当前下载目录里的本地漫画；可输入 JM 号、作者或标签筛选，点封面打开 PDF，右键可定位文件。')
+        note.setWordWrap(True)
 
         self.filter_pivot = Pivot()
         self.filter_pivot.addItem('all', '全部', lambda: self.search_input.clear())
@@ -112,6 +119,7 @@ class LibraryPage(QWidget):
         self.scroll.setWidget(self.content)
 
         layout.addLayout(header)
+        layout.addWidget(note)
         layout.addWidget(self.filter_pivot)
         layout.addWidget(self.scroll, 1)
         self.reload()

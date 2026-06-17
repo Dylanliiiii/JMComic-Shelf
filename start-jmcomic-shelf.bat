@@ -4,6 +4,7 @@ chcp 65001 >nul
 
 set "PROJECT_DIR=%~dp0"
 set "PYTHONPATH=%PROJECT_DIR%src"
+set "JMCOMIC_SHELF_PROJECT_DIR=%PROJECT_DIR%"
 
 python -m jmcomic_shelf.app
 

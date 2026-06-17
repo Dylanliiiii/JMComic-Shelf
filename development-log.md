@@ -1,5 +1,53 @@
 # Development Log
 
+## 2026-06-18 01:26:23 +08:00
+
+### 修改范围
+
+- 桌面应用 UI 可用性修复
+- 下载与查看详情错误提示
+- 设置页路径说明与配置同步
+- 源码启动默认配置路径
+- 开发记录
+
+### 涉及文件
+
+- `src/jmcomic_shelf/settings.py`
+- `src/jmcomic_shelf/download_service.py`
+- `src/jmcomic_shelf/detail_service.py`
+- `src/jmcomic_shelf/option_service.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `src/jmcomic_shelf/ui/download_page.py`
+- `src/jmcomic_shelf/ui/detail_page.py`
+- `src/jmcomic_shelf/ui/settings_page.py`
+- `src/jmcomic_shelf/ui/styles.py`
+- `start-jmcomic-shelf.bat`
+- `tests/test_jmcomic/test_shelf_settings.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_detail_service.py`
+- `tests/test_jmcomic/test_shelf_option_service.py`
+- `development-log.md`
+
+### 具体内容
+
+- 根据用户实际试用反馈，移除桌面页面中由 QScrollArea/QTableWidget/FluentWindow 默认样式暴露出的深色大块背景，改为浅色 Windows 风格工作区。
+- 将主窗口从 `FluentWindow` 默认导航改为项目可控的浅色左侧栏，默认展开，宽度收敛到适配导航文字；导航项包含主标题和一句小字说明。
+- 书库、下载、查看详情、设置页均补充一句简短操作说明，避免只有标题和输入框。
+- 下载服务在 `jmcomic-option.yml` 未选择或路径不存在时，直接返回中文可读错误，不再把空路径传给上游导致 `unknown mode: '', acceptable modes=['yml', 'json', 'pickle']`。
+- 查看详情服务同样校验配置文件路径，详情页捕获异常并显示在页面中，避免用户点击后无反应。
+- 设置页改为分块说明：下载目录用于保存漫画图片、PDF 和 `catalog.md`；配置文件是 `jmcomic-option.yml`；应用数据目录用于 `settings.json`、`shelf.db` 和封面缩略图缓存。
+- 保存设置时，如果选择了 `jmcomic-option.yml` 和下载目录，会同步更新配置文件中的 `dir_rule.base_dir`，让 UI 里设置的下载目录真正作用于下载流程。
+- 源码启动脚本 `start-jmcomic-shelf.bat` 新增 `JMCOMIC_SHELF_PROJECT_DIR` 环境变量；桌面端默认配置文件路径会自动指向源码根目录下的 `jmcomic-option.yml`，减少首次使用的猜测成本。
+
+### 验证情况
+
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_settings tests.test_jmcomic.test_shelf_download_service tests.test_jmcomic.test_shelf_detail_service tests.test_jmcomic.test_shelf_option_service -v`，结果通过。
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_library_page -v`，结果通过。
+- 已运行 `python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\settings.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\option_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，结果通过。
+- 已用 offscreen 主窗口截图检查深色像素比例，深色区域约 `0.0046`，用于确认不再出现大面积黑色背景。
+- 本次未实际触发下载，不涉及账号密码、cookie、token、代理凭据、下载内容、PDF、封面缓存或本地 `catalog.md`。
+
 ## 2026-06-18 01:05:32 +08:00
 
 ### 修改范围

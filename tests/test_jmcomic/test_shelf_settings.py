@@ -38,3 +38,18 @@ class TestShelfSettings(unittest.TestCase):
             self.assertEqual(loaded.download_dir, 'D:/path/to/JMComic')
             self.assertEqual(loaded.option_path, 'D:/path/to/JMComic Shelf/jmcomic-option.yml')
             self.assertEqual(loaded.app_data_dir, tmp)
+
+    def test_default_option_path_uses_project_dir_when_present(self):
+        from jmcomic_shelf.settings import ShelfSettings
+
+        old = os.environ.get('JMCOMIC_SHELF_PROJECT_DIR')
+        with TemporaryDirectory() as tmp:
+            os.environ['JMCOMIC_SHELF_PROJECT_DIR'] = tmp
+            try:
+                settings = ShelfSettings()
+                self.assertEqual(settings.option_path, os.path.join(tmp, 'jmcomic-option.yml'))
+            finally:
+                if old is None:
+                    os.environ.pop('JMCOMIC_SHELF_PROJECT_DIR', None)
+                else:
+                    os.environ['JMCOMIC_SHELF_PROJECT_DIR'] = old

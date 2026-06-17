@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
-from qfluentwidgets import LineEdit, PrimaryPushButton, PushButton, StrongBodyLabel
+from qfluentwidgets import BodyLabel, LineEdit, PrimaryPushButton, PushButton, StrongBodyLabel
 
 from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.detail_service import fetch_album_detail
@@ -9,18 +10,23 @@ from jmcomic_shelf.index_service import record_from_album
 from jmcomic_shelf.paths import get_database_path, get_settings_path
 from jmcomic_shelf.settings import ShelfSettings
 
+from .styles import apply_page_style
+
 
 class DetailPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.local_record = None
+        apply_page_style(self)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(14)
 
         header = QHBoxLayout()
-        header.addWidget(StrongBodyLabel('查看详情'))
+        title = StrongBodyLabel('查看详情')
+        title.setFont(QFont(self.font().family(), 16, QFont.Bold))
+        header.addWidget(title)
         self.input = LineEdit()
         self.input.setPlaceholderText('输入 JM 号')
         self.query_button = PrimaryPushButton('查看详情')
@@ -31,6 +37,10 @@ class DetailPage(QWidget):
         self.info = QLabel('尚未查询')
         self.info.setAlignment(Qt.AlignTop)
         self.info.setWordWrap(True)
+        self.info.setStyleSheet('color: #1f1f1f; background: transparent;')
+
+        note = BodyLabel('查询单个 JM 号的线上详情；如果书库索引里已有本地 PDF，可直接打开或定位文件。')
+        note.setWordWrap(True)
 
         actions = QHBoxLayout()
         self.open_button = PushButton('打开 PDF')
@@ -42,25 +52,34 @@ class DetailPage(QWidget):
         actions.addStretch(1)
 
         layout.addLayout(header)
+        layout.addWidget(note)
         layout.addWidget(self.info, 1)
         layout.addLayout(actions)
         self.update_actions()
 
     def load_detail(self):
         jm_id = self.input.text().strip().removeprefix('JM').removeprefix('jm')
-        settings = ShelfSettings.load(get_settings_path())
-        album = fetch_album_detail(settings.option_path, jm_id)
-        record = record_from_album(album)
-        self.local_record = self.find_local_record(jm_id)
-        self.info.setText(
-            f'标题：{record.title}\n'
-            f'JM号：JM{record.jm_id}\n'
-            f'作者：{", ".join(record.authors)}\n'
-            f'标签：{", ".join(record.tags)}\n'
-            f'章节：{len(record.chapters)}\n'
-            f'链接：{record.link}'
-        )
-        self.update_actions()
+        if not jm_id:
+            self.info.setText('请输入 JM 号。')
+            return
+        try:
+            settings = ShelfSettings.load(get_settings_path())
+            album = fetch_album_detail(settings.option_path, jm_id)
+            record = record_from_album(album)
+            self.local_record = self.find_local_record(jm_id)
+            self.info.setText(
+                f'标题：{record.title}\n'
+                f'JM号：JM{record.jm_id}\n'
+                f'作者：{", ".join(record.authors)}\n'
+                f'标签：{", ".join(record.tags)}\n'
+                f'章节：{len(record.chapters)}\n'
+                f'链接：{record.link}'
+            )
+        except Exception as e:
+            self.local_record = None
+            self.info.setText(str(e))
+        finally:
+            self.update_actions()
 
     def find_local_record(self, jm_id: str):
         db = ShelfDatabase(get_database_path())

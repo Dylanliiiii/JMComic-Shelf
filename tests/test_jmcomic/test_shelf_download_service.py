@@ -19,3 +19,12 @@ class TestShelfDownloadService(unittest.TestCase):
 
         self.assertEqual(task.status, 'waiting')
         self.assertEqual(task.error, '')
+
+    def test_run_task_reports_missing_option_path(self):
+        from jmcomic_shelf.download_service import DownloadService, DownloadTask
+
+        task = DownloadTask(jm_id='211899')
+        DownloadService('').run_task(task)
+
+        self.assertEqual(task.status, 'failed')
+        self.assertIn('请先在设置里选择配置文件', task.error)

@@ -5,6 +5,13 @@ from dataclasses import asdict, dataclass
 from .paths import get_default_app_data_dir
 
 
+def get_default_option_path() -> str:
+    project_dir = os.environ.get('JMCOMIC_SHELF_PROJECT_DIR', '').strip()
+    if not project_dir:
+        return ''
+    return os.path.join(project_dir, 'jmcomic-option.yml')
+
+
 @dataclass
 class ShelfSettings:
     download_dir: str = ''
@@ -14,6 +21,8 @@ class ShelfSettings:
     def __post_init__(self):
         if not self.app_data_dir:
             self.app_data_dir = get_default_app_data_dir()
+        if not self.option_path:
+            self.option_path = get_default_option_path()
 
     @classmethod
     def load(cls, filepath: str) -> 'ShelfSettings':
