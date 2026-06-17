@@ -1183,6 +1183,35 @@ class CatalogPlugin(JmOptionPlugin):
         return '；'.join(result)
 
 
+class ShelfIndexPlugin(JmOptionPlugin):
+    plugin_key = 'shelf_index'
+
+    def invoke(self,
+               album: JmAlbumDetail = None,
+               db_path=None,
+               pdf_path='',
+               cover_path='',
+               **kwargs,
+               ) -> None:
+        if album is None:
+            return
+
+        self.require_param(db_path, 'shelf_index 插件需要 db_path 参数')
+
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.index_service import record_from_album
+
+        db_path = JmcomicText.parse_to_abspath(db_path)
+        db = ShelfDatabase(db_path)
+        db.open()
+        try:
+            db.upsert_album(record_from_album(album, pdf_path=pdf_path, cover_path=cover_path))
+        finally:
+            db.close()
+
+        self.log(f'更新桌面书库索引: {db_path}', 'finish')
+
+
 class LongImgPlugin(JmOptionPlugin):
     plugin_key = 'long_img'
 

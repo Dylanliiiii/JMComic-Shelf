@@ -178,6 +178,31 @@ class Test_CatalogPlugin(unittest.TestCase):
             self.assertIn('\u5f8c\u5bae', content)
 
 
+class Test_ShelfIndexPlugin(unittest.TestCase):
+
+    def test_shelf_index_plugin_updates_sqlite(self):
+        from jmcomic.jm_plugin import ShelfIndexPlugin
+        from jmcomic_shelf.database import ShelfDatabase
+
+        album = FakeCatalogAlbum('211899', '作品A', ['作者A'], ['标签1'])
+
+        with TemporaryDirectory() as tmp:
+            db_path = os.path.join(tmp, 'shelf.db')
+            plugin = ShelfIndexPlugin(None)
+            plugin.invoke(album=album, db_path=db_path, pdf_path=os.path.join(tmp, 'JM211899-作品A.pdf'))
+
+            db = ShelfDatabase(db_path)
+            db.open()
+            try:
+                result = db.query_albums('211899')
+            finally:
+                db.close()
+
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].title, '作品A')
+            self.assertEqual(result[0].authors, ['作者A'])
+
+
 class Test_Plugin(JmTestConfigurable):
 
     def test_plugin_missing_album_context(self):
