@@ -1,5 +1,40 @@
 # Development Log
 
+## 2026-06-18 01:41:17 +08:00
+
+### 修改范围
+
+- 桌面应用 Fluent UI 壳恢复
+- 书库索引写入流程修复
+- 浅色/深色背景适配
+- 开发记录
+
+### 涉及文件
+
+- `src/jmcomic_shelf/download_service.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/styles.py`
+- `src/jmcomic_shelf/ui/download_page.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `development-log.md`
+
+### 具体内容
+
+- 用户反馈上一次修复把 QFluentWidgets/Windows Fluent 风格改偏了；本次将主窗口恢复为 `FluentWindow`、`NavigationInterface`、`FluentIcon` 的 QFluentWidgets 框架，不再用普通 `QListWidget` 替代侧边导航。
+- 保留侧边栏默认展开，宽度收敛到 `180`，并继续使用 QFluentWidgets 自带导航风格。
+- 禁用 `Mica` 效果并给导航和窗口补浅色背景，避免浅色模式或 offscreen 环境下左侧区域渲染成大面积黑底；页面内部样式改为按当前 QFluentWidgets 主题选择浅色或深色背景。
+- 书库不显示下载内容的根因是桌面下载服务下载成功后没有写入桌面端 SQLite 索引；本次让 `DownloadService.run_task()` 在下载成功后主动把 album 元数据写入 `%APPDATA%/JMComic Shelf/shelf.db`。
+- 下载服务会在设置的下载目录中查找 `JM{jm_id}-*.pdf`，找到后把 PDF 路径写入索引，便于书库页点击封面打开 PDF。
+- 主窗口切换到书库页时会调用页面 `reload()`，下载完成后回到书库即可重新读取索引。
+- 记录用户提供的 UI 参考项目完整链接：`https://github.com/Dylanliiiii/LaunchDock`，后续桌面 UI 迭代应参考其 QFluentWidgets 风格排版，而不是改成普通 Qt 侧边栏。
+
+### 验证情况
+
+- 已运行 `python -m unittest tests.test_jmcomic.test_shelf_download_service tests.test_jmcomic.test_shelf_settings tests.test_jmcomic.test_shelf_library_page -v`，结果通过。
+- 已运行 `python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\styles.py src\jmcomic_shelf\ui\download_page.py`，结果通过。
+- 已运行 offscreen 主窗口截图检查，确认已恢复 QFluentWidgets 导航壳，内容区和左侧栏不再出现大面积黑底；offscreen 截图中的中文方块为离屏字体渲染问题，用户本机正常窗口截图中文可显示。
+- 本次未实际触发真实下载，不涉及账号密码、cookie、token、代理凭据、下载内容、PDF、封面缓存或本地 `catalog.md`。
+
 ## 2026-06-18 01:26:23 +08:00
 
 ### 修改范围

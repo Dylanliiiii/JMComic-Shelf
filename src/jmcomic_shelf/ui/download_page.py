@@ -69,10 +69,16 @@ class DownloadPage(QWidget):
 
     def run_task(self, task: DownloadTask):
         settings = ShelfSettings.load(get_settings_path())
-        service = DownloadService(settings.option_path)
+        service = DownloadService(
+            settings.option_path,
+            app_data_dir=settings.app_data_dir,
+            download_dir=settings.download_dir,
+        )
         service.run_task(task)
         if task.status == 'failed':
             self.status.setText(task.error)
+        elif task.status == 'success':
+            self.status.setText('下载完成，已更新书库索引。')
         self.render_tasks()
 
     def render_tasks(self):

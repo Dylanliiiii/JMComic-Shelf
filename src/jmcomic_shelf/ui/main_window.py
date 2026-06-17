@@ -1,6 +1,5 @@
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QStackedWidget, QStyle, QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon, FluentWindow, NavigationItemPosition, Theme, setTheme
 
 from .detail_page import DetailPage
 from .download_page import DownloadPage
@@ -8,70 +7,46 @@ from .library_page import LibraryPage
 from .settings_page import SettingsPage
 
 
-class MainWindow(QWidget):
+class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
+        setTheme(Theme.AUTO)
         self.setWindowTitle('JMComic Shelf')
         self.resize(1100, 720)
         self.setFont(QFont(self.font().family(), 11))
-        self.setStyleSheet("""
-            QWidget {
-                background: #fbf7f7;
-                color: #1f1f1f;
-            }
-            QListWidget {
-                background: #fbf7f7;
-                border: none;
-                font-size: 16px;
-                outline: none;
-            }
-            QListWidget::item {
-                height: 54px;
-                padding-left: 14px;
-                border-radius: 8px;
-                margin: 3px 8px;
-            }
-            QListWidget::item:selected {
-                background: #eee7e7;
-                border-left: 3px solid #00a7b3;
-            }
-            QListWidget::item:hover {
-                background: #f3eeee;
-            }
-        """)
+        self.setMicaEffectEnabled(False)
+        self.setStyleSheet('MainWindow, FluentWindow, QWidget { background: #fbf7f7; }')
 
-        self.nav = QListWidget()
-        self.nav.setFixedWidth(178)
-        self.nav.setSpacing(2)
-        self.nav.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.nav.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.library_page = LibraryPage(self)
+        self.download_page = DownloadPage(self)
+        self.detail_page = DetailPage(self)
+        self.settings_page = SettingsPage(self)
 
-        self.stack = QStackedWidget()
+        self.library_page.setObjectName('libraryPage')
+        self.download_page.setObjectName('downloadPage')
+        self.detail_page.setObjectName('detailPage')
+        self.settings_page.setObjectName('settingsPage')
 
-        self.pages = [
-            ('书库', '浏览本地 PDF', QStyle.SP_DirIcon, LibraryPage(self)),
-            ('下载', '输入 JM 号下载', QStyle.SP_ArrowDown, DownloadPage(self)),
-            ('查看详情', '查询单本信息', QStyle.SP_MessageBoxInformation, DetailPage(self)),
-            ('设置', '配置路径缓存', QStyle.SP_FileDialogDetailedView, SettingsPage(self)),
-        ]
+        self.addSubInterface(self.library_page, FluentIcon.LIBRARY, '书库')
+        self.addSubInterface(self.download_page, FluentIcon.DOWNLOAD, '下载')
+        self.addSubInterface(self.detail_page, FluentIcon.INFO, '查看详情')
+        self.addSubInterface(
+            self.settings_page,
+            FluentIcon.SETTING,
+            '设置',
+            NavigationItemPosition.BOTTOM,
+        )
 
-        for title, subtitle, icon, page in self.pages:
-            item = QListWidgetItem(f'{title}\n{subtitle}')
-            item.setIcon(self.style().standardIcon(icon))
-            item.setTextAlignment(Qt.AlignVCenter)
-            self.nav.addItem(item)
-            self.stack.addWidget(page)
+        self.navigationInterface.setExpandWidth(180)
+        self.navigationInterface.expand(useAni=False)
+        self.navigationInterface.setStyleSheet(
+            'NavigationInterface { background: #fbf7f7; }'
+            'NavigationPanel { background: #fbf7f7; }'
+        )
+        self.stackedWidget.currentChanged.connect(self.reload_current_page)
 
-        shell = QHBoxLayout(self)
-        shell.setContentsMargins(0, 0, 0, 0)
-        shell.setSpacing(0)
-
-        nav_host = QWidget()
-        nav_layout = QVBoxLayout(nav_host)
-        nav_layout.setContentsMargins(8, 16, 0, 8)
-        nav_layout.addWidget(self.nav)
-        shell.addWidget(nav_host)
-        shell.addWidget(self.stack, 1)
-
-        self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)
-        self.nav.setCurrentRow(0)
+    def reload_current_page(self):
+        widget = self.stackedWidget.currentWidget()
+        reload = getattr(widget, 'reload', None)
+        if callable(reload):
+            reload()
