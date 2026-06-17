@@ -1,275 +1,165 @@
-<!-- 顶部标题 & 统计徽章 -->
+<!-- Header & badges -->
 <div align="center">
-  <h1 style="margin-top: 0" align="center">Python API for JMComic</h1>
+  <h1 style="margin-top: 0" align="center">JMComic Shelf</h1>
 
   <p align="center">
-    <a href="../../README.md">简体中文</a> •
-    <strong>English</strong> •
-    <a href="./README-jp.md">日本語</a> •
-    <a href="./README-kr.md">한국어</a>
+    <a href="../../README.md">简体中文</a> ·
+    <strong>English</strong>
   </p>
 
   <p align="center">
-  <strong>Provide Python API to access JMComic (Web & Mobile), integrates GitHub Actions downloader🚀</strong>
+    <strong>A personal comic download, PDF export, and local library management workflow based on JMComic-Crawler-Python</strong>
   </p>
 
-[![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github)](https://github.com/hect0x7)
-[![Stars](https://img.shields.io/github/stars/hect0x7/JMComic-Crawler-Python?color=orange&label=stars&style=flat)](https://github.com/hect0x7/JMComic-Crawler-Python/stargazers)
-[![Forks](https://img.shields.io/github/forks/hect0x7/JMComic-Crawler-Python?color=green&label=forks&style=flat)](https://github.com/hect0x7/JMComic-Crawler-Python/forks)
-[![GitHub latest releases](https://img.shields.io/github/v/release/hect0x7/JMComic-Crawler-Python?color=blue&label=version)](https://github.com/hect0x7/JMComic-Crawler-Python/releases/latest)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/jmcomic?style=flat&color=hotpink)](https://pepy.tech/projects/jmcomic)
-[![Licence](https://img.shields.io/github/license/hect0x7/JMComic-Crawler-Python?color=red)](https://github.com/hect0x7/JMComic-Crawler-Python)
+[![GitHub](https://img.shields.io/badge/GitHub-Dylanliiiii%2FJMComic--Shelf-181717?logo=github)](https://github.com/Dylanliiiii/JMComic-Shelf)
+[![Upstream](https://img.shields.io/badge/Based%20on-hect0x7%2FJMComic--Crawler--Python-blue)](https://github.com/hect0x7/JMComic-Crawler-Python)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/github/license/hect0x7/JMComic-Crawler-Python?color=red)](https://github.com/hect0x7/JMComic-Crawler-Python)
 
 </div>
 
-
-
-
-> This project encapsulates a Python API for crawling JM.
-> 
-> With a few simple lines of Python code, you can download albums from JM to your local machine, with properly processed images.
-> 
-> **🧭 Quick Guide**
-> - [Tutorial: Downloading JM Albums using GitHub Actions](../docs/sources/tutorial/1_github_actions.md)
-> - [Tutorial: Exporting and downloading your JM favorites data](../docs/sources/tutorial/10_export_favorites.md)
-> - [Tower Broadcast: Welcome captains to join and contribute code](../../.github/CONTRIBUTING.md)
-> 
-> **Friendly Prompt: Cherish JM. In order to reduce the pressure on JM servers, please do not download too many albums at once 🙏🙏🙏.**
-
+> JMComic Shelf is a personal comic download and local library management tool.
+>
+> This project is based on [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python). It keeps the upstream downloader, parser, API, and plugin architecture, while adding a workflow focused on local collection management.
+>
+> The long-term plan is to wrap the current command-line and script workflow into a small desktop application.
 
 ![introduction.jpg](../docs/sources/images/introduction.jpg)
 
+## Project Purpose
 
-## Introduction
+The upstream `JMComic-Crawler-Python` project provides a stable Python API, command-line downloader, image decoding, plugin system, and export features such as PDF, ZIP, and long images.
 
-The core function of this project is to download albums.
+This repository builds on top of that foundation and focuses on a personal local-library workflow:
 
-Based on this, an easy-to-use, highly extensible framework is designed to meet various download requirements.
+- unified local configuration for download paths, login, image format, concurrency, and plugins;
+- automatic PDF generation after downloads;
+- automatic maintenance of a Markdown catalog named `catalog.md`;
+- author-grouped catalog entries;
+- duplicate-safe updates for already downloaded albums;
+- support for multi-author albums, where the same album is indexed under each author;
+- catalog entries containing cover image, title, JM ID, link, tags, and chapters;
+- embedded base64 cover images, so `catalog.md` can be uploaded by itself to cloud drives, note apps, or personal collection websites;
+- shorter chapter folder names such as `Chapter 1` / `第1章` style paths to avoid Windows long-path issues;
+- Windows helper scripts for users who do not want to run PowerShell commands manually.
 
-Currently, the core functions are relatively stable, and the project is in the maintenance phase.
+## Current Changes
 
-In addition to downloading, other JM interfaces are also implemented on demand. Existing features:
+Compared with the upstream project, this repository currently adds or changes:
 
-- Login
-- Search albums (supports all search parameters)
-- Image downloading and decoding
-- Categories/Rankings
-- Album/Chapter details
-- Personal favorites
-- Interface encryption and decryption (for the APP API)
+- a new `catalog` plugin that updates a local Markdown library catalog after album downloads;
+- author-grouped catalog sections;
+- duplicate-safe catalog updates by JM ID;
+- preservation of the original title, author, and tag text returned by the source site, without forced Simplified/Traditional Chinese conversion;
+- embedded cover images generated from the first successfully downloaded image of the album;
+- configurable catalog cover width, currently defaulting to `120`;
+- a shorter download path rule to avoid repeated long titles in Windows paths;
+- Windows batch scripts:
+  - `download-jmcomic.bat` for downloading one or more album IDs;
+  - `view-jmcomic.bat` for viewing album details;
+- `.gitignore` protection for `jmcomic-option.yml`, which may contain local credentials.
 
-## Installation Guide
+## Usage
 
-> ⚠ If you have not installed Python, you must install Python before executing the following steps. [Download from Python Official Site](https://www.python.org/downloads/)
-> **Version 3.12+ is recommended.**
+### 1. Install Dependencies
 
-* Install via official pip source (recommended, the update command is identical)
+Python 3.12 or newer is recommended.
 
-  ```shell
-  pip install jmcomic -U
-  ```
-* Install from source code
-
-  ```shell
-  pip install git+https://github.com/hect0x7/JMComic-Crawler-Python
-  ```
-
-## Quick Start
-
-### 1. Downloading an album
-
-All you need is the following code to download all chapter images of the album `JM123`:
-
-```python
-import jmcomic  # Import this module, you need to install it first.
-jmcomic.download_album('123')  # Pass the ID of the album to download the entire album locally.
-
-# You can also use the Async API (See Tutorial: https://jmcomic.readthedocs.io/zh-cn/latest/tutorial/14_async_usage/)
-import asyncio
-asyncio.run(jmcomic.download_album_async('123'))
+```shell
+pip install -e .
+pip install img2pdf
 ```
 
-The `download_album` method above also accepts an `option` parameter to control the configuration, which includes JM domain names, network proxies, image format conversions, plugins, and more.
+If you only want to use the upstream package, see the upstream documentation or install it directly:
 
-You might need these options. It is recommended to create an option instance from a configuration file and use it to download albums, as shown in the next section:
-
-### 2. Using option for advanced downloading
-
-1. First, create a configuration file, let's say `option.yml`
-
-   This file uses a specific format, please refer to the documentation → [Configuration File Guide](../docs/sources/option_file_syntax.md)
-
-   Here is a demonstration. Assuming you want to convert the downloaded images into `png` format, you should write the following into `option.yml`:
-
-```yml
-download:
-  image:
-    suffix: .png # This option converts the downloaded image to png format
+```shell
+pip install jmcomic -U
 ```
 
-2. Secondly, run the following Python code
+### 2. Prepare Local Configuration
 
-```python
-import jmcomic
+Create a local `jmcomic-option.yml` file in the project root.
 
-# Create configuration object
-option = jmcomic.create_option_by_file('Path to your configuration file, e.g. D:/option.yml')
-# Download the album using the option configured
-jmcomic.download_album(123, option)
-# Equivalent to: option.download_album(123)
-```
+This file stores local settings such as download directory, login credentials, concurrency, PDF export, and catalog plugin configuration. It may contain account credentials, so it is intentionally ignored by Git.
 
-### 3. Using the Command Line
-> If your only goal is to download albums, using the command line is simpler and more straightforward.
-> 
-> For example, on Windows, press `Win + R`, enter `jmcomic xxx`, and you can download the album.
-
-Examples:
-
-Command to download album 123:
-
-```sh
-jmcomic 123
-```
-
-Command to download chapter 456 of album 123:
-```sh
-jmcomic 123 p456
-```
-
-The command-line mode also supports custom options. You can use environment variables or command line arguments:
-
-a. Specify the option file path via `--option` argument
-
-```sh
-jmcomic 123 --option="D:/a.yml"
-```
-
-b. Set the environment variable `JM_OPTION_PATH` to the option file path (recommended)
-
-> Please Google how to configure environment variables. By using powershell: `setx JM_OPTION_PATH "D:/a.yml"` (Requires a restart to take effect).
-
-```sh
-jmcomic 123
-```
-
-
-
-
-### 4. View Album Details (jmv command)
-
-> The `jmv` command is used to quickly view album details without downloading.
-> 
-> **Applicable scenarios**: When you see a *mysterious car number* on some websites and want to quickly see what album it is. Just copy the original text, press Win+R, and enter `jmv [pasted content]`.
->
-> It supports extracting numbers as the car number from any text, making it easy to paste car numbers in various formats directly.
-
-Examples:
-
-```sh
-# Directly enter the car number
-jmv 350234
-
-# Extract numbers from mixed text (extracts 350234)
-jmv 350whohasntseen234
-
-# Specify option file (also supports environment variables, same usage as above)
-jmv 350234 --option="D:/a.yml"
-
-# -y parameter: exit directly after execution without pressing Enter to confirm
-jmv 350234 -y
-```
-
-Output effect:
+The current personal workflow uses a path structure like:
 
 ```text
-🔍 Querying details for JMComic car number - [350234]...
-
-──────────────────────────────────────────────────
-  📖 Title:  xxx
-  🆔 ID:     JM350234
-  🔗 Link:   https://18comic.vip/album/350234/
-  ✍️ Author: Author1, Author2
-──────────────────────────────────────────────────
-  📅 Published: 2022-06-15
-  📅 Updated:   2023-01-01
-  📄 Pages:     50
-  👀 Views:     2M
-  ❤️ Likes:     77K
-  💬 Comments:  9801
-──────────────────────────────────────────────────
-  🏷️ Tags:       Tag1, Tag2, ...
-  🎭 Characters: CharA, CharB, ...
-  📚 Works:      Work1, Work2, ...
-──────────────────────────────────────────────────
-  📑 Chapters (2):
-     Episode 1  Part 1  (id: 350234)
-     Episode 2  Part 2  (id: 350235)
-──────────────────────────────────────────────────
-
-[Execution Finished] Please press Enter to close the window... (You can append the -y parameter next time to skip confirmation)
+download directory / author / JM ID-title / chapter number
 ```
 
-## Advanced Usage
+PDF files and `catalog.md` are generated in the download directory.
 
-Please check the documentation homepage → [jmcomic.readthedocs.io (Chinese language)](https://jmcomic.readthedocs.io/zh-cn/latest)
+### 3. Download with the Windows Script
 
-*(Tip: jmcomic provides many options. For most download requirements, you can find a corresponding configuration or plugin setup.)*
+On Windows, double-click:
 
-## Key Features
+```text
+download-jmcomic.bat
+```
 
-- **Supports both Async and Sync APIs**
-- **Bypass Cloudflare anti-bot mechanisms**
-- **Implement the latest decryption logic for the JM APP API (1.6.3)**
-- Multiple usages:
+Then enter one or more JM album IDs, for example:
 
-  - GitHub Actions: Enter the album ID directly on the webpage to download ([Tutorial: Download JM Albums using GitHub Actions](../docs/sources/tutorial/1_github_actions.md))
-  - Command Line: No need to write Python code, easy to use ([Tutorial: Download JM Albums by Command Line](../docs/sources/tutorial/2_command_line.md))
-  - Python Code: The most powerful usage, requiring basic Python programming knowledge
-- Supports both **Web** and **Mobile** implementations, switchable via configuration (**Mobile is IP restriction-free and very compatible, Web restricts some IP regions but offers higher efficiency**)
-- Built-in **auto-retry and domain switching** mechanisms
-- **Multi-threaded downloading** (can be fine-tuned to one-thread-per-image, greatly boosting speed)
-- **Highly configurable**
+```text
+211899 123456
+```
 
-  - Can work smoothly out of the box without configurations
-  - Supported formats to generate `Option` instances
-  - Configurable items include: `Domains` `Clients` `Disk Caching` `Concurrent chapters/images downloads` `Format Conversions` `Path rules` `Request Meta (headers, cookies, proxies)` `Simplified/Traditional Chinese Conversion`, etc.
-- **Highly Extensible**
+To view album details without downloading, double-click:
 
-  - Supports custom callbacks before/after downloading albums/chapters/images
-  - Customizable objects: `Downloader` `Option` `Client` `Entities`, etc.
-  - Supports custom logging and exception listener mechanics
-  - **Embedded with powerful core Plugins** to easily extend features or inject others':
-    - `Login Plugin`, `Filter-new-chapter plugin`, `Export favorites to CSV plugin`
-    - `Merge images into PDF plugin`, `Merge images into Long png plugin`
-    - `Zip-files plugin`, `Auto fetch browser cookies plugin`, `Subscribe album update plugin`, etc.
+```text
+view-jmcomic.bat
+```
 
-## Prerequisites
+### 4. Download from the Command Line
 
-* Version **3.12+** is recommended, with a minimum compatible version of 3.9.
-  > Note: Python 3.9 and earlier versions reached their End Of Life (EOL) in 2025. You may encounter third-party library incompatibilities at any time if you use version 3.9 or below.
+You can also call the upstream CLI directly:
 
-* Since this is a personal project, the documentation/examples may occasionally be out of sync. Please feel free to open an Issue for any clarifications.
+```shell
+jmcomic 211899 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+```
 
-## Directory Structure
+Batch download:
 
-* `.github`: GitHub Actions configuration files
-* `assets`: Resources aside from pure code
-  * `docs`: Documentation
-  * `option`: Test/example configurations
-* `src`: Main code base
-  * `jmcomic`: Core `jmcomic` package
-* `tests`: Unit tests relying on `unittest`
-* `usage`: Examples of usage implementations
+```shell
+jmcomic 211899 123456 654321 --option="D:/Others/JMComic-Crawler-Python/jmcomic-option.yml"
+```
 
-## Acknowledgments
+## Catalog File
 
-### Image Segmentation logic + JM Mobile APIs Support
+After downloads, the project automatically maintains:
 
-<a href="https://github.com/tonquer/JMComic-qt">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github-readme-stats.vercel.app/api/pin/?username=tonquer&repo=JMComic-qt&theme=radical" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github-readme-stats.vercel.app/api/pin/?username=tonquer&repo=JMComic-qt" />
-    <img alt="Repo Card" src="https://github-readme-stats.vercel.app/api/pin/?username=tonquer&repo=JMComic-qt" />
-  </picture>
-</a>
+```text
+D:/Others/JMComic/catalog.md
+```
+
+Example catalog entry:
+
+```md
+# Author
+
+1. <img src="data:image/jpeg;base64,..." alt="JM211899" width="120" style="vertical-align: top;">
+
+   - 📖 Title: Album title
+   - 🆔 ID: JM211899
+   - 🔗 Link: https://18comic.vip/album/211899/
+   - 🏷️ Tags: tag1, tag2
+   - 📑 Chapters: Chapter 1 Album title (id: 211899)
+```
+
+Cover images are embedded directly into the Markdown file, so the catalog can still display covers when uploaded as a standalone file.
+
+## Roadmap
+
+- Wrap the current script workflow into a desktop application.
+- Add a graphical download task manager.
+- Add local library browsing, filtering, searching, and tag management.
+- Add a configuration wizard to avoid hand-editing YAML.
+- Add a clearer failed-download list and retry flow.
+
+## Upstream Project
+
+This project is based on:
+
+- [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python)
+
+Thanks to the upstream author for providing the core API, downloader, and plugin framework. This repository is a personal local-library workflow extension and is not intended to replace the upstream project.

@@ -4,7 +4,7 @@
 
   <p align="center">
     <strong>简体中文</strong> ·
-    <a href="#english">English</a>
+    <a href="./assets/readme/README-en.md">English</a>
   </p>
 
   <p align="center">
@@ -160,18 +160,3 @@ D:/Others/JMComic/catalog.md
 - [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python)
 
 感谢原作者提供稳定的核心 API、下载器和插件框架。本仓库主要用于个人本地书库工作流扩展，不替代上游项目。
-
-## English
-
-JMComic Shelf is a personal comic download and local library management tool based on [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python).
-
-This fork keeps the upstream downloader, parser and plugin architecture, while adding a local-library workflow:
-
-- automatic PDF generation,
-- an author-grouped Markdown catalog,
-- embedded cover images in `catalog.md`,
-- Windows-friendly helper scripts,
-- shorter chapter directory names to avoid long-path issues,
-- and a future path toward a small desktop app.
-
-Sensitive local configuration such as account credentials should stay in `jmcomic-option.yml`, which is intentionally ignored by Git.
