@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QFontMetrics, QPixmap
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, Pivot, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
@@ -13,6 +13,27 @@ from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_sett
 from jmcomic_shelf.settings import ShelfSettings
 
 from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
+
+
+class IndexSyncWorker(QObject):
+    finished = Signal(str)
+
+    def __init__(self, settings):
+        super().__init__()
+        self.settings = settings
+
+    @Slot()
+    def run(self):
+        error = ''
+        try:
+            rebuild_index_from_download_dir(
+                self.settings.download_dir,
+                get_database_path(self.settings.app_data_dir),
+                get_cover_cache_dir(self.settings.app_data_dir),
+            )
+        except Exception as e:
+            error = str(e)
+        self.finished.emit(error)
 
 
 class CoverCard(CardWidget):
@@ -116,6 +137,8 @@ class LibraryPage(QWidget):
         self.pending_columns = 0
         self.batch_mode = False
         self.selected_ids = set()
+        self.sync_thread = None
+        self.sync_worker = None
         self.setObjectName('libraryPage')
         apply_page_style(self)
 
@@ -203,14 +226,15 @@ class LibraryPage(QWidget):
         layout.addWidget(self.scroll, 1)
         self.reload()
 
-    def reload(self):
+    def reload(self, sync_index: bool = True):
         query = self.search_input.text().strip()
         settings = ShelfSettings.load(get_settings_path())
         sync_error = ''
-        try:
-            self._sync_index_from_settings(settings)
-        except Exception as e:
-            sync_error = str(e)
+        if sync_index:
+            try:
+                self._sync_index_from_settings(settings)
+            except Exception as e:
+                sync_error = str(e)
         db = ShelfDatabase(get_database_path(settings.app_data_dir))
         try:
             db.open()
@@ -223,6 +247,40 @@ class LibraryPage(QWidget):
             db.close()
         self.selected_ids &= {record.jm_id for record in self.records}
         self.render_records()
+
+    def reload_for_activation(self):
+        self.reload(sync_index=False)
+        self.start_background_sync()
+
+    def start_background_sync(self):
+        settings = ShelfSettings.load(get_settings_path())
+        if not settings.download_dir:
+            return
+        if self.sync_thread and self.sync_thread.isRunning():
+            return
+        self.sync_thread = QThread(self)
+        self.sync_worker = IndexSyncWorker(settings)
+        self.sync_worker.moveToThread(self.sync_thread)
+        self.sync_thread.started.connect(self.sync_worker.run)
+        self.sync_worker.finished.connect(self.on_background_sync_finished)
+        self.sync_worker.finished.connect(self.sync_thread.quit)
+        self.sync_worker.finished.connect(self.sync_worker.deleteLater)
+        self.sync_thread.finished.connect(self.sync_thread.deleteLater)
+        self.sync_thread.finished.connect(self.clear_background_sync)
+        self.sync_thread.start()
+
+    @Slot(str)
+    def on_background_sync_finished(self, error: str):
+        if error:
+            self.load_error = error
+            self.render_records()
+            return
+        self.reload(sync_index=False)
+
+    @Slot()
+    def clear_background_sync(self):
+        self.sync_thread = None
+        self.sync_worker = None
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

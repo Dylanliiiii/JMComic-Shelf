@@ -53,7 +53,9 @@ class MainWindow(FluentWindow):
 
     def reload_current_page(self):
         widget = self.stackedWidget.currentWidget()
-        reload = getattr(widget, 'reload', None)
+        reload = getattr(widget, 'reload_for_activation', None)
+        if not callable(reload):
+            reload = getattr(widget, 'reload', None)
         if callable(reload):
             reload()
 

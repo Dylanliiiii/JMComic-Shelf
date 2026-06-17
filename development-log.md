@@ -1,5 +1,39 @@
 ﻿# Development Log
 
+## 2026-06-18 06:47:04 +08:00
+
+### 修改范围
+
+- 本地书库页面切换性能优化。
+- 本地书库后台索引同步。
+- README、桌面应用设计文档和实施计划同步。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `README.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 排查确认从其他页面切回本地书库时，`MainWindow.reload_current_page()` 会直接调用 `LibraryPage.reload()`，而 `reload()` 会同步递归扫描下载目录并重建 SQLite 索引，下载目录稍大时会阻塞页面切换。
+- 为本地书库新增 `reload_for_activation()`：页面激活时先跳过下载目录扫描，只读取现有 SQLite 索引并立即渲染。
+- 新增 `IndexSyncWorker` 后台线程；页面切回本地书库后会在后台扫描下载目录，扫描完成后再轻量刷新列表，保留“切回书库可发现新下载或手动放入作品”的能力。
+- 主窗口页面切换优先调用页面的 `reload_for_activation()`，没有该接口时才回退到普通 `reload()`。
+- README、spec 和 plan 已同步记录切回本地书库时的后台索引刷新行为；`AGENTS.md` 和两个项目专属 Skill 只需沿用既有同步规则，无需改动。
+
+### 验证情况
+
+- 已按 TDD 先新增失败测试，覆盖页面激活刷新不直接调用下载目录扫描，以及主窗口切回本地书库时优先调用轻量激活刷新。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_library_page -v`，4 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，25 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py`，通过。
+- 已运行 offscreen `MainWindow` 初始化烟测，确认窗口可创建。
+
 ## 2026-06-18 06:29:06 +08:00
 
 ### 修改范围
