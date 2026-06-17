@@ -175,6 +175,7 @@ python -m py_compile src\jmcomic\jm_plugin.py
 - 修改 README、AGENTS、Skill 或开发记录时，至少检查相关链接、路径和项目名是否一致。
 - 文档或开发记录中如果提到用户提供的参考项目、教程、工具或外部资料，应写出完整 URL。
 - 每次修改代码或文档后，检查 README、`AGENTS.md`、项目专属 Skill、开发记录是否需要同步更新。
+- 每次交付附带新增功能、修改文件结构、改变工作流或调整用户可见行为时，不能只更新 `development-log.md`；必须同步判断 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/` 是否需要更新，并在开发记录中写明检查结果。
 
 ## 开发记录
 

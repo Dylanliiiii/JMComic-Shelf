@@ -1,5 +1,51 @@
 ﻿# Development Log
 
+## 2026-06-18 03:20:06 +08:00
+
+### 修改范围
+
+- 桌面端书库页布局与筛选展示。
+- 桌面端下载页任务进度展示。
+- 桌面端主题设置。
+- 项目协作规则与说明文档同步要求。
+- README、桌面应用设计文档和实施计划。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/settings.py`
+- `src/jmcomic_shelf/ui/theme.py`
+- `src/jmcomic_shelf/ui/styles.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `src/jmcomic_shelf/ui/download_page.py`
+- `src/jmcomic_shelf/ui/settings_page.py`
+- `tests/test_jmcomic/test_shelf_settings.py`
+- `README.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 书库页将“全部”筛选左对齐，并显示当前结果总数，例如 `全部 · 12 本`。
+- 书库页封面卡片网格不再固定每行 5 本，而是根据窗口宽度动态计算列数；拖动窗口时只重排当前记录，不触发重新扫描下载目录。
+- 下载页新增任务级总进度条；开始下载后，输入的 JM 号会先进入任务列表，状态按“等待中”“下载中”“已完成”“失败”更新。
+- 下载任务改为后台 `QThread` 顺序执行，避免下载过程长期阻塞 UI；第一版只显示任务级进度，不伪造上游下载器未提供的图片级百分比。
+- 设置页新增“外观主题”，支持跟随系统、浅色和深色；选择后立即预览，保存后写入 `settings.json`。
+- 新增 `ui/theme.py` 统一 QFluentWidgets 主题映射和青色强调色；页面自定义样式会根据当前主题切换深浅色。
+- 根据用户补充要求，把“不能只更新开发记录，新增功能/结构/工作流/用户可见行为变化时必须同步检查 README、AGENTS、项目专属 Skill、spec 和 plan”的规则写入 `AGENTS.md` 和两个项目专属 Skill。
+- README、桌面应用设计文档和实施计划已同步记录本次新增的响应式书库、下载进度和主题设置。
+- 读取最近开发记录时发现旧条目存在 mojibake 乱码；本次未大面积改写旧历史内容，新增记录保持正常 UTF-8，并将该问题作为后续文档清理风险保留。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，18 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py src\jmcomic_shelf\ui\theme.py`，通过。
+- 已运行 offscreen `MainWindow` 初始化烟测，窗口标题正常输出为 `JMComic Shelf`。
+
 ## 2026-06-18 02:32:47 +08:00
 
 ### 修改范围

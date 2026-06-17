@@ -17,12 +17,15 @@ class ShelfSettings:
     download_dir: str = ''
     option_path: str = ''
     app_data_dir: str = ''
+    theme_mode: str = 'auto'
 
     def __post_init__(self):
         if not self.app_data_dir:
             self.app_data_dir = get_default_app_data_dir()
         if not self.option_path:
             self.option_path = get_default_option_path()
+        if self.theme_mode not in {'auto', 'light', 'dark'}:
+            self.theme_mode = 'auto'
 
     @classmethod
     def load(cls, filepath: str) -> 'ShelfSettings':

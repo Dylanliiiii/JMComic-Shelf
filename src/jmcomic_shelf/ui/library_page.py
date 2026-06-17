@@ -2,8 +2,8 @@ import os
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFontMetrics, QPixmap
-from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, LineEdit, Pivot, SmoothScrollArea, SubtitleLabel, TitleLabel
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, LineEdit, Pivot, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
 from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
@@ -80,6 +80,7 @@ class LibraryPage(QWidget):
         super().__init__(parent)
         self.records = []
         self.load_error = ''
+        self.current_columns = 0
         self.setObjectName('libraryPage')
         apply_page_style(self)
 
@@ -101,6 +102,10 @@ class LibraryPage(QWidget):
         self.filter_pivot = Pivot(self)
         self.filter_pivot.addItem('all', '全部', lambda: self.search_input.clear())
         self.filter_pivot.setCurrentItem('all')
+        filter_row = QHBoxLayout()
+        filter_row.setContentsMargins(0, 0, 0, 0)
+        filter_row.addWidget(self.filter_pivot)
+        filter_row.addStretch(1)
 
         self.scroll = SmoothScrollArea(self)
         self.scroll.setWidgetResizable(True)
@@ -116,7 +121,7 @@ class LibraryPage(QWidget):
         layout.addWidget(title)
         layout.addWidget(self.search_input)
         layout.addWidget(note)
-        layout.addWidget(self.filter_pivot)
+        layout.addLayout(filter_row)
         layout.addWidget(self.scroll, 1)
         self.reload()
 
@@ -140,6 +145,14 @@ class LibraryPage(QWidget):
             db.close()
         self.render_records()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if not hasattr(self, 'scroll'):
+            return
+        columns = self._column_count()
+        if self.records and columns != self.current_columns:
+            self.render_records()
+
     def _sync_index_from_settings(self, settings):
         if not settings.download_dir:
             return
@@ -151,11 +164,14 @@ class LibraryPage(QWidget):
 
     def render_records(self):
         self._clear_content()
+        self.filter_pivot.setItemText('all', f'全部 · {len(self.records)} 本')
         if not self.records:
             self.content_layout.addWidget(self._empty_card())
             self.content_layout.addStretch(1)
             return
 
+        columns = self._column_count()
+        self.current_columns = columns
         for author, records in group_by_author(self.records).items():
             self.content_layout.addWidget(SubtitleLabel(f'{author} · {len(records)} 本', self.content))
             grid_host = QWidget(self.content)
@@ -167,19 +183,30 @@ class LibraryPage(QWidget):
             grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             for index, record in enumerate(records):
                 card = CoverCard(record, grid_host)
-                grid.addWidget(card, index // 5, index % 5, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-            for column in range(5):
+                grid.addWidget(card, index // columns, index % columns, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            for column in range(columns):
                 grid.setColumnMinimumWidth(column, CoverCard.card_width)
                 grid.setColumnStretch(column, 0)
-            grid.setColumnStretch(5, 1)
-            grid.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum), 0, 5)
+            grid.setColumnStretch(columns, 1)
+            grid.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum), 0, columns)
             self.content_layout.addWidget(grid_host)
 
         self.content_layout.addStretch(1)
 
+    def _column_count(self):
+        available_width = max(1, self.scroll.viewport().width() - 18)
+        spacing = 24
+        return max(1, (available_width + spacing) // (CoverCard.card_width + spacing))
+
     def _empty_card(self):
         card = QFrame(self.content)
-        card.setStyleSheet('QFrame { background: #3a2f32; border: 1px solid #493d41; border-radius: 8px; }')
+        if isDarkTheme():
+            background = '#3a2f32'
+            border = '#493d41'
+        else:
+            background = '#ffffff'
+            border = '#ddd5d8'
+        card.setStyleSheet(f'QFrame {{ background: {background}; border: 1px solid {border}; border-radius: 8px; }}')
         layout = QVBoxLayout(card)
         layout.setContentsMargins(18, 16, 18, 16)
         if self.load_error:

@@ -6,11 +6,12 @@
 
 已有模块：
 
-- `settings.py`：保存下载目录、`jmcomic-option.yml` 和应用数据目录。
+- `settings.py`：保存下载目录、`jmcomic-option.yml`、应用数据目录和外观主题模式，主题支持跟随系统、浅色和深色。
 - `database.py`：SQLite 书库索引。
 - `cover_cache.py`：完整等比例封面缩略图。
 - `index_service.py`：JM album 到 SQLite 的映射，以及从下载目录重建索引。
 - `download_service.py`：解析多个 JM 号、执行下载、下载后写入索引。
+- `ui/theme.py`：集中处理 QFluentWidgets 主题映射和强调色。
 - `detail_service.py`：查询单个 JM 号详情。
 - `file_actions.py`：打开 PDF 和在资源管理器中定位。
 - `ui/`：书库、下载、查看详情、设置页面。
@@ -37,13 +38,14 @@
 ### 2. UI 视觉打磨
 
 - 检查深色和浅色主题下的书库、下载、详情、设置页。
+- 设置页提供跟随系统、浅色、深色主题切换；选择后立即预览，保存后持久化。
 - 用 QFluentWidgets 控件替换剩余普通 Qt 控件中影响观感的部分。
 - 为书库空状态、错误状态和扫描状态增加 Fluent 卡片提示。
 - 避免硬编码单主题颜色。
 
 ### 3. 下载流程完善
 
-- 下载任务执行不应长期阻塞 UI 线程。
+- 下载任务执行不应长期阻塞 UI 线程；UI 至少显示任务级进度、当前 JM 号和每个任务状态。
 - 下载完成后应触发书库页刷新。
 - 失败任务应保留可读错误摘要。
 
