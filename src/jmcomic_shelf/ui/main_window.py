@@ -1,8 +1,8 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 from qfluentwidgets import FluentIcon, FluentWindow, NavigationItemPosition, isDarkTheme
 
-from jmcomic_shelf.paths import get_settings_path
+from jmcomic_shelf.paths import get_app_icon_path, get_settings_path
 from jmcomic_shelf.settings import ShelfSettings
 
 from .styles import apply_page_style, prepare_table
@@ -19,6 +19,7 @@ class MainWindow(FluentWindow):
         self.settings = ShelfSettings.load(get_settings_path())
         apply_app_theme(self.settings.theme_mode)
         self.setWindowTitle('JMComic Shelf')
+        self.setWindowIcon(QIcon(get_app_icon_path()))
         self.resize(1100, 720)
         self.setFont(QFont(self.font().family(), 11))
         self.setMicaEffectEnabled(True)

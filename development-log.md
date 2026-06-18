@@ -1,5 +1,34 @@
 ﻿# Development Log
 
+## 2026-06-18 12:31:24 +08:00
+
+### 修改范围
+
+- 桌面应用窗口图标接入。
+- 应用资源路径辅助函数。
+
+### 涉及文件
+
+- `assets/icon.png`
+- `src/jmcomic_shelf/app.py`
+- `src/jmcomic_shelf/paths.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `development-log.md`
+
+### 具体内容
+
+- 使用 `assets/icon.png` 作为 JMComic Shelf 桌面端软件图标。
+- 新增 `get_app_icon_path()`，统一返回应用图标路径，并兼容后续打包时的 `_MEIPASS` 资源根目录。
+- 在 `QApplication` 和 `MainWindow` 上设置同一个 `QIcon`，用于窗口标题栏、任务栏和应用级默认窗口图标。
+- 开工前读取 `AGENTS.md`、项目专属 Skill、相关桌面端 spec/plan 和近期开发记录时，PowerShell 终端输出出现中文 mojibake；结合本次用户提供的正常中文规则内容，判断为终端输出编码显示问题，本次不扩大为文档清理任务。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次仅接入现有图标资源，不改变使用流程和设计规则，无需同步更新。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，33 个测试通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，结果通过。
+- 已检查 diff 中不包含账号、密码、cookie、token、代理凭据或用户下载内容。
+
 ## 2026-06-18 08:10:04 +08:00
 
 ### 修改范围
