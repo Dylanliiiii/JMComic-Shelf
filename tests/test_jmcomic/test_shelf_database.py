@@ -65,6 +65,25 @@ class TestShelfDatabase(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_query_albums_by_tags_matches_any_selected_tag(self):
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.models import AlbumRecord
+
+        with TemporaryDirectory() as tmp:
+            db = ShelfDatabase(os.path.join(tmp, 'shelf.db'))
+            db.open()
+            try:
+                db.upsert_album(AlbumRecord('211899', '作品A', authors=['作者A'], tags=['后宫', '巨乳']))
+                db.upsert_album(AlbumRecord('123456', '作品B', authors=['作者B'], tags=['全彩']))
+                db.upsert_album(AlbumRecord('654321', '作品C', authors=['作者C'], tags=['校园']))
+
+                result = db.query_albums_by_tags(['後宮', '全彩'])
+
+                self.assertEqual({x.jm_id for x in result}, {'123456', '211899'})
+                self.assertEqual([x.jm_id for x in db.query_albums_by_tags([])], [])
+            finally:
+                db.close()
+
     def test_delete_albums_removes_selected_records(self):
         from jmcomic_shelf.database import ShelfDatabase
         from jmcomic_shelf.models import AlbumRecord

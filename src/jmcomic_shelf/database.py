@@ -207,6 +207,30 @@ class ShelfDatabase:
         ).fetchall()
         return [self._row_to_album(row) for row in rows]
 
+    def query_albums_by_tags(self, tags: list[str]) -> List[AlbumRecord]:
+        conn = self._require_conn()
+        normalized_tags = []
+        for tag in tags:
+            tag = self._normalize_tag(tag)
+            if tag and tag not in normalized_tags:
+                normalized_tags.append(tag)
+        if not normalized_tags:
+            return []
+
+        placeholders = ','.join('?' for _ in normalized_tags)
+        rows = conn.execute(
+            f"""
+            SELECT DISTINCT a.*
+            FROM albums a
+            JOIN album_tags at ON at.jm_id = a.jm_id
+            JOIN tags t ON t.id = at.tag_id
+            WHERE t.name IN ({placeholders})
+            ORDER BY a.updated_at DESC, a.jm_id DESC
+            """,
+            normalized_tags,
+        ).fetchall()
+        return [self._row_to_album(row) for row in rows]
+
     def _row_to_album(self, row) -> AlbumRecord:
         conn = self._require_conn()
         jm_id = row['jm_id']

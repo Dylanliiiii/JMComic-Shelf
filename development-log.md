@@ -1,5 +1,45 @@
 ﻿# Development Log
 
+## 2026-06-18 08:10:04 +08:00
+
+### 修改范围
+
+- 本地书库搜索输入体验优化。
+- 本地书库“全部 / 分类”筛选按钮视觉状态统一。
+- 分类标签面板滚动与多选筛选。
+- 相关文档、项目规则和开发记录同步。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/database.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_database.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `README.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 排查确认搜索框卡顿根因是 `textChanged` 立即调用 `reload()`，而 `reload()` 会查库并重绘封面网格，输入法组合文字期间会被频繁刷新打断；改为 260ms 防抖后再轻量查询，不在每个字符输入时立即刷新。
+- 将“全部”和“分类”改为同一种筛选按钮样式，统一字体、尺寸、下划线和选中亮度；分类展开或存在已选标签时，“分类”保持选中状态。
+- 分类标签面板改为最多展示五行，超出后在面板内部滚动，避免标签过多时占满页面。
+- 新增多标签筛选：可同时选择多个标签，数据库按“满足任一选中标签”查询并显示作品；点击“全部”清空搜索和标签筛选。
+- 将 `src/jmcomic_shelf/ui/library_page.py` 和 `tests/test_jmcomic/test_shelf_library_page.py` 中本次触及的历史 mojibake 文案恢复为正常 UTF-8 中文。
+- README、`AGENTS.md`、项目专属 Skill、spec 和 plan 已同步记录搜索防抖、分类面板五行滚动、多标签任一匹配筛选规则；维护 Skill 仍是通用收尾流程，无需修改。
+- 开工前读取本地 `AGENTS.md` 与两个项目专属 Skill 时，终端输出仍存在 mojibake 乱码；本次按用户消息中贴出的正常 UTF-8 规则以及既有开发记录继续执行，并在触及的 UI/测试文件中清理乱码。
+
+### 验证情况
+
+- 已按 TDD 新增失败测试 `test_query_albums_by_tags_matches_any_selected_tag`，确认旧数据库缺少多标签查询接口；修复后通过。
+- 已按 TDD 更新/新增书库页测试，覆盖搜索防抖、多标签选择、分类面板五行滚动、筛选按钮同尺寸和选中下划线状态；修复后相关测试通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，33 项通过；`zhconv` 和 Qt 退出阶段仍有既有 `ResourceWarning` 提示，但测试结果通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile ...`，通过。
+- 已运行 offscreen 书库页烟测，确认搜索防抖间隔为 `260ms`，分类面板最大高度为 `208px`，多标签选择可同时保留“后宫”和“巨乳”。
+
 ## 2026-06-18 07:53:26 +08:00
 
 ### 修改范围

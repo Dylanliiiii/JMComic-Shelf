@@ -2,8 +2,8 @@ import os
 
 from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QFontMetrics, QPixmap
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, Pivot, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
 from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.delete_service import delete_album_files
@@ -138,9 +138,13 @@ class LibraryPage(QWidget):
         self.batch_mode = False
         self.selected_ids = set()
         self.available_tags = []
-        self.active_tag = ''
+        self.active_tags = set()
+        self.active_filter = 'all'
         self.sync_thread = None
         self.sync_worker = None
+        self.tag_button_height = 32
+        self.tag_grid_spacing = 8
+        self.tag_grid_vertical_margins = 16
         self.setObjectName('libraryPage')
         apply_page_style(self)
 
@@ -153,6 +157,11 @@ class LibraryPage(QWidget):
         self.resize_render_timer.setInterval(150)
         self.resize_render_timer.timeout.connect(self.apply_pending_resize_render)
 
+        self.search_timer = QTimer(self)
+        self.search_timer.setSingleShot(True)
+        self.search_timer.setInterval(260)
+        self.search_timer.timeout.connect(self.apply_search_filter)
+
         title = TitleLabel('本地书库', self)
         self.search_input = LineEdit(self)
         self.search_input.setPlaceholderText('搜索 JM号 / 作者 / 标签')
@@ -164,33 +173,43 @@ class LibraryPage(QWidget):
         )
         note.setWordWrap(True)
 
-        self.filter_pivot = Pivot(self)
-        self.filter_pivot.addItem('all', '全部', self.clear_filter)
-        self.filter_pivot.setCurrentItem('all')
+        self.all_filter_button = PushButton('全部', self)
+        self.all_filter_button.clicked.connect(self.clear_filter)
         self.category_button = PushButton('分类', self)
         self.category_button.clicked.connect(self.toggle_category_panel)
+        for button in (self.all_filter_button, self.category_button):
+            button.setFixedSize(104, 48)
+
         self.batch_button = PushButton('批量管理', self)
         self.batch_button.clicked.connect(self.toggle_batch_mode)
         filter_row = QHBoxLayout()
         filter_row.setContentsMargins(0, 0, 0, 0)
-        self.filter_host = QFrame(self)
-        self.filter_host.setStyleSheet(self._filter_host_style())
-        filter_host_layout = QHBoxLayout(self.filter_host)
-        filter_host_layout.setContentsMargins(10, 4, 10, 4)
-        filter_host_layout.addWidget(self.filter_pivot)
-        self.filter_host.setFixedHeight(48)
-        self.category_button.setFixedHeight(self.filter_host.height())
-        filter_row.addWidget(self.filter_host)
+        filter_row.setSpacing(10)
+        filter_row.addWidget(self.all_filter_button)
         filter_row.addWidget(self.category_button)
         filter_row.addStretch(1)
         filter_row.addWidget(self.batch_button)
 
         self.category_host = QFrame(self)
         self.category_host.setStyleSheet(self._filter_host_style())
-        self.category_layout = QGridLayout(self.category_host)
+        category_host_layout = QVBoxLayout(self.category_host)
+        category_host_layout.setContentsMargins(0, 0, 0, 0)
+        self.category_scroll = QScrollArea(self.category_host)
+        self.category_scroll.setWidgetResizable(True)
+        self.category_scroll.setFrameShape(self.category_scroll.Shape.NoFrame)
+        self.category_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.category_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.category_scroll.setStyleSheet(TRANSPARENT_SCROLL_STYLE)
+        self.category_scroll.setMaximumHeight(self._category_max_height())
+        self.category_content = QWidget(self.category_scroll)
+        self.category_content.setStyleSheet('background: transparent;')
+        self.category_layout = QGridLayout(self.category_content)
         self.category_layout.setContentsMargins(10, 8, 10, 8)
-        self.category_layout.setHorizontalSpacing(8)
-        self.category_layout.setVerticalSpacing(8)
+        self.category_layout.setHorizontalSpacing(self.tag_grid_spacing)
+        self.category_layout.setVerticalSpacing(self.tag_grid_spacing)
+        self.category_scroll.setWidget(self.category_content)
+        self.category_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        category_host_layout.addWidget(self.category_scroll)
         self.category_host.setVisible(False)
 
         self.batch_bar = QHBoxLayout()
@@ -240,19 +259,27 @@ class LibraryPage(QWidget):
         self.action_status.setVisible(False)
         layout.addWidget(self.action_status)
         layout.addWidget(self.scroll, 1)
+        self.update_filter_buttons()
         self.reload()
 
     def clear_filter(self):
-        self.active_tag = ''
+        self.active_tags.clear()
+        self.active_filter = 'all'
+        self.search_timer.stop()
         self.search_input.blockSignals(True)
         self.search_input.clear()
         self.search_input.blockSignals(False)
-        self.reload()
+        self.reload(sync_index=False)
 
     def on_search_changed(self):
-        if self.active_tag:
-            self.active_tag = ''
-        self.reload()
+        if self.active_tags:
+            self.active_tags.clear()
+        self.active_filter = 'all'
+        self.update_filter_buttons()
+        self.search_timer.start()
+
+    def apply_search_filter(self):
+        self.reload(sync_index=False)
 
     def reload(self, sync_index: bool = True):
         query = self.search_input.text().strip()
@@ -267,8 +294,8 @@ class LibraryPage(QWidget):
         try:
             db.open()
             self.available_tags = db.list_tags()
-            if self.active_tag:
-                self.records = db.query_albums_by_tag(self.active_tag)
+            if self.active_tags:
+                self.records = db.query_albums_by_tags(sorted(self.active_tags))
             else:
                 self.records = db.query_albums(query)
             self.load_error = sync_error
@@ -339,9 +366,10 @@ class LibraryPage(QWidget):
 
     def render_records(self):
         self._clear_content()
-        self.filter_pivot.setItemText('all', f'全部 · {len(self.records)} 本')
-        self.filter_host.setStyleSheet(self._filter_host_style())
+        self.all_filter_button.setText(f'全部 · {len(self.records)} 本')
         self.category_host.setStyleSheet(self._filter_host_style())
+        self.category_scroll.setMaximumHeight(self._category_max_height())
+        self.update_filter_buttons()
         self.render_tag_buttons()
         if not self.records:
             self.content_layout.addWidget(self._empty_card())
@@ -377,11 +405,18 @@ class LibraryPage(QWidget):
 
     def toggle_category_panel(self):
         self.category_host.setVisible(not self.category_host.isVisible())
+        self.active_filter = 'category' if self.category_host.isVisible() else 'all'
+        self.update_filter_buttons()
         if self.category_host.isVisible():
             self.render_tag_buttons()
 
-    def apply_tag_filter(self, tag: str):
-        self.active_tag = tag
+    def toggle_tag_filter(self, tag: str):
+        if tag in self.active_tags:
+            self.active_tags.remove(tag)
+        else:
+            self.active_tags.add(tag)
+        self.active_filter = 'category'
+        self.search_timer.stop()
         self.search_input.blockSignals(True)
         self.search_input.clear()
         self.search_input.blockSignals(False)
@@ -395,15 +430,52 @@ class LibraryPage(QWidget):
                 widget.deleteLater()
 
         if not self.available_tags:
-            self.category_layout.addWidget(CaptionLabel('暂无标签', self.category_host), 0, 0)
+            self.category_layout.addWidget(CaptionLabel('暂无标签', self.category_content), 0, 0)
             return
 
         columns = max(1, min(6, self._column_count()))
         for index, tag in enumerate(self.available_tags):
-            button_cls = PrimaryPushButton if tag == self.active_tag else PushButton
-            button = button_cls(tag, self.category_host)
-            button.clicked.connect(lambda checked=False, value=tag: self.apply_tag_filter(value))
+            button_cls = PrimaryPushButton if tag in self.active_tags else PushButton
+            button = button_cls(tag, self.category_content)
+            button.setFixedHeight(self.tag_button_height)
+            button.clicked.connect(lambda checked=False, value=tag: self.toggle_tag_filter(value))
             self.category_layout.addWidget(button, index // columns, index % columns)
+        self.category_content.adjustSize()
+
+    def update_filter_buttons(self):
+        self.all_filter_button.setStyleSheet(self._filter_button_style(self.active_filter == 'all' and not self.active_tags))
+        self.category_button.setStyleSheet(self._filter_button_style(self.active_filter == 'category' or bool(self.active_tags)))
+
+    def _filter_button_style(self, active: bool) -> str:
+        if isDarkTheme():
+            background = '#3b2d33' if active else '#2c2328'
+            hover = '#46363d'
+            border = '#564149' if active else '#3b3035'
+            color = '#ffffff' if active else '#d8cfd3'
+            pressed = '#26383c'
+        else:
+            background = '#ffffff' if active else '#f5edf1'
+            hover = '#fbf6f8'
+            border = '#d8c7cf' if active else '#e4d8de'
+            color = '#1f1b1d'
+            pressed = '#e8f9fb'
+        return (
+            'PushButton {'
+            f'background: {background};'
+            f'color: {color};'
+            f'border: 1px solid {border};'
+            'border-bottom: 3px solid #00c8d7;'
+            'border-radius: 8px;'
+            'font-size: 14px;'
+            'font-weight: 600;'
+            'padding: 0 14px;'
+            '}'
+            f'PushButton:hover {{ background: {hover}; }}'
+            f'PushButton:pressed {{ background: {pressed}; }}'
+        )
+
+    def _category_max_height(self):
+        return self.tag_button_height * 5 + self.tag_grid_spacing * 4 + self.tag_grid_vertical_margins
 
     def _column_count(self):
         available_width = max(1, self.scroll.viewport().width() - 18)

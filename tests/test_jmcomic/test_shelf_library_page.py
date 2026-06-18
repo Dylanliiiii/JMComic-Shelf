@@ -61,7 +61,7 @@ class TestShelfLibraryPage(unittest.TestCase):
         start_background_sync.assert_called_once()
         self.assertIsNotNone(app)
 
-    def test_library_page_can_expand_categories_and_filter_by_tag(self):
+    def test_library_page_can_expand_categories_and_filter_by_multiple_tags(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
         from PySide6.QtWidgets import QApplication
@@ -80,22 +80,24 @@ class TestShelfLibraryPage(unittest.TestCase):
                         AlbumRecord('211899', '作品A', authors=['作者A'], tags=['后宫']),
                         AlbumRecord('123456', '作品B', authors=['作者B'], tags=['巨乳']),
                     ]
-                    db.query_albums_by_tag.return_value = [
+                    db.query_albums_by_tags.return_value = [
                         AlbumRecord('211899', '作品A', authors=['作者A'], tags=['后宫']),
+                        AlbumRecord('123456', '作品B', authors=['作者B'], tags=['巨乳']),
                     ]
 
                     page.reload()
                     page.toggle_category_panel()
-                    page.apply_tag_filter('后宫')
+                    page.toggle_tag_filter('后宫')
+                    page.toggle_tag_filter('巨乳')
 
         self.assertFalse(page.category_host.isHidden())
         self.assertEqual(page.available_tags, ['后宫', '巨乳'])
-        self.assertEqual(page.active_tag, '后宫')
-        self.assertEqual([record.jm_id for record in page.records], ['211899'])
-        db.query_albums_by_tag.assert_called_with('后宫')
+        self.assertEqual(page.active_tags, {'后宫', '巨乳'})
+        self.assertEqual({record.jm_id for record in page.records}, {'123456', '211899'})
+        db.query_albums_by_tags.assert_called_with(['后宫', '巨乳'])
         self.assertIsNotNone(app)
 
-    def test_category_button_uses_same_height_as_all_filter(self):
+    def test_library_page_search_uses_debounce_instead_of_reloading_on_every_key(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
         from PySide6.QtWidgets import QApplication
@@ -104,12 +106,49 @@ class TestShelfLibraryPage(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         page = LibraryPage()
 
-        page.filter_host.adjustSize()
+        with patch.object(page, 'reload') as reload:
+            page.on_search_changed()
+
+        reload.assert_not_called()
+        self.assertTrue(page.search_timer.isActive())
+        self.assertIsNotNone(app)
+
+    def test_category_panel_is_limited_to_five_rows_and_scrolls(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.ui.library_page import LibraryPage
+
+        app = QApplication.instance() or QApplication([])
+        page = LibraryPage()
+        page.available_tags = [f'标签{i}' for i in range(60)]
+        page.toggle_category_panel()
+
+        expected_height = page.tag_button_height * 5 + page.tag_grid_spacing * 4 + page.tag_grid_vertical_margins
+        self.assertEqual(page.category_scroll.verticalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.assertEqual(page.category_scroll.maximumHeight(), expected_height)
+        self.assertFalse(page.category_scroll.isHidden())
+        self.assertIsNotNone(app)
+
+    def test_filter_buttons_use_same_size_and_selected_state(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.ui.library_page import LibraryPage
+
+        app = QApplication.instance() or QApplication([])
+        page = LibraryPage()
+
+        page.all_filter_button.adjustSize()
         page.category_button.adjustSize()
 
-        self.assertEqual(page.category_button.minimumHeight(), page.filter_host.minimumHeight())
-        self.assertEqual(page.category_button.maximumHeight(), page.filter_host.maximumHeight())
-        self.assertEqual(page.category_button.height(), page.filter_host.height())
+        self.assertEqual(page.category_button.font().pointSize(), page.all_filter_button.font().pointSize())
+        self.assertEqual(page.category_button.minimumHeight(), page.all_filter_button.minimumHeight())
+        self.assertEqual(page.category_button.maximumHeight(), page.all_filter_button.maximumHeight())
+        self.assertIn('border-bottom: 3px solid #00c8d7', page.all_filter_button.styleSheet())
+        page.toggle_category_panel()
+        self.assertIn('border-bottom: 3px solid #00c8d7', page.category_button.styleSheet())
         self.assertIsNotNone(app)
 
     def test_main_window_uses_lightweight_library_activation_reload(self):
