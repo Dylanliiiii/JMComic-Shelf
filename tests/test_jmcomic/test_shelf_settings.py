@@ -1,5 +1,6 @@
 from test_jmcomic import *
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 
 class TestShelfSettings(unittest.TestCase):
@@ -62,3 +63,29 @@ class TestShelfSettings(unittest.TestCase):
         settings = ShelfSettings(theme_mode='unknown')
 
         self.assertEqual(settings.theme_mode, 'auto')
+
+    def test_settings_page_persists_theme_when_preview_changes(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.settings import ShelfSettings
+        from jmcomic_shelf.ui.settings_page import SettingsPage
+
+        app = QApplication.instance() or QApplication([])
+        with TemporaryDirectory() as tmp:
+            settings_path = os.path.join(tmp, 'settings.json')
+            ShelfSettings(
+                download_dir='D:/path/to/JMComic',
+                option_path='',
+                app_data_dir=tmp,
+                theme_mode='dark',
+            ).save(settings_path)
+
+            with patch('jmcomic_shelf.ui.settings_page.get_settings_path', return_value=settings_path):
+                page = SettingsPage()
+                page.theme_combo.setCurrentText('浅色')
+
+            loaded = ShelfSettings.load(settings_path)
+
+        self.assertEqual(loaded.theme_mode, 'light')
+        self.assertIsNotNone(app)

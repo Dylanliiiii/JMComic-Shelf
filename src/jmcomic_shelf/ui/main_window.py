@@ -17,7 +17,6 @@ class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
         self.settings = ShelfSettings.load(get_settings_path())
-        apply_app_theme(self.settings.theme_mode)
         self.setWindowTitle('JMComic Shelf')
         self.setWindowIcon(QIcon(get_app_icon_path()))
         self.resize(1100, 720)

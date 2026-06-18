@@ -131,6 +131,38 @@ class TestShelfLibraryPage(unittest.TestCase):
         self.assertFalse(page.category_scroll.isHidden())
         self.assertIsNotNone(app)
 
+    def test_tag_filter_keeps_existing_tag_buttons(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.models import AlbumRecord
+        from jmcomic_shelf.ui.library_page import LibraryPage
+
+        app = QApplication.instance() or QApplication([])
+        page = LibraryPage()
+
+        with patch('jmcomic_shelf.ui.library_page.ShelfSettings.load'):
+            with patch.object(page, '_sync_index_from_settings'):
+                with patch('jmcomic_shelf.ui.library_page.ShelfDatabase') as database_cls:
+                    db = database_cls.return_value
+                    db.list_tags.return_value = ['后宫', '巨乳']
+                    db.query_albums.return_value = [
+                        AlbumRecord('211899', '作品A', authors=['作者A'], tags=['后宫']),
+                    ]
+                    db.query_albums_by_tags.return_value = [
+                        AlbumRecord('211899', '作品A', authors=['作者A'], tags=['后宫']),
+                    ]
+
+                    page.reload()
+                    page.toggle_category_panel()
+                    first_button = page.tag_buttons['后宫']
+                    page.toggle_tag_filter('后宫')
+
+        self.assertIs(page.tag_buttons['后宫'], first_button)
+        self.assertFalse(page.category_host.isHidden())
+        self.assertEqual(page.active_tags, {'后宫'})
+        self.assertIsNotNone(app)
+
     def test_filter_buttons_use_same_size_and_selected_state(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 

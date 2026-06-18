@@ -1,5 +1,77 @@
 ﻿# Development Log
 
+## 2026-06-18 12:52:38 +08:00
+
+### 修改范围
+
+- 修复设置页外观主题选择后下次启动不生效的问题。
+- 修复本地书库分类标签点击时整块标签面板闪烁的问题。
+- 清理早期下载和查看详情脚本，改为桌面端优先入口。
+- 补充 PyAppify 打包与 GitHub Release 工作流，预留并接入软件图标。
+- 同步 README、英文 README、AGENTS、项目专属 Skill、桌面端规格和计划文档中的发布维护规则。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/app.py`
+- `src/jmcomic_shelf/paths.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `src/jmcomic_shelf/ui/settings_page.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `src/jmcomic_shelf/assets/icon.png`
+- `assets/icon.png`
+- `icons/icon.png`
+- `icons/icon.ico`
+- `icons/README.md`
+- `pyappify.yml`
+- `.github/workflows/release.yml`
+- `pyproject.toml`
+- `setup.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `tests/test_jmcomic/test_shelf_settings.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- 删除 `download-jmcomic.bat`
+- 删除 `view-jmcomic.bat`
+
+### 具体内容
+
+- 设置页主题下拉框改为选择后立即写入 `settings.json`，主程序在创建主窗口前先读取并应用保存的主题，避免每次启动回到深色模式。
+- 本地书库分类标签面板保留已有按钮对象，只在标签集合或列数变化时重建；普通筛选点击只更新按钮状态，避免标签区域整体刷新闪烁。
+- 新增回归测试覆盖主题即时保存和标签筛选不重建按钮。
+- 删除早期命令行下载、查看详情入口脚本，README 改为推荐 `start-jmcomic-shelf.bat`、源码运行和 GitHub Release 桌面端安装包。
+- 新增 `pyappify.yml` 和 `.github/workflows/release.yml`，约定推送 `v*` tag 时由 PyAppify Action 构建 Windows 桌面发布包并上传到 GitHub Release。
+- 新增 `icons/` 发布图标目录，并把当前软件图标同步到包内资源，确保源码运行、安装包和 README 都能引用同一图标资产。
+- 文档中补充版本号规则：只在用户明确要求发版时使用 `vMAJOR.MINOR.PATCH`；当前不增加 CNB 镜像和同步 Action。
+
+### 验证
+
+- 已运行主题回归测试并先观察到修复前失败，再修复为通过。
+- 已运行分类标签回归测试并先观察到修复前缺少稳定按钮缓存，再修复为通过。
+- 已运行：
+
+```powershell
+$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v
+```
+
+- 结果：35 个 `test_shelf_*.py` 测试通过；运行过程中仍有 Qt/zhconv 的既有 `ResourceWarning`，不影响测试结果。
+- 已运行桌面端相关模块 `py_compile`，通过。
+- 已解析 `pyappify.yml` 和 `.github/workflows/release.yml`，通过。
+- 已检查 `assets/icon.png`、`icons/icon.png`、`icons/icon.ico`、`src/jmcomic_shelf/assets/icon.png` 能由 Pillow 打开。
+- 已运行 offscreen 桌面端冒烟测试，窗口标题为 `JMComic Shelf`，图标路径存在。
+
+### 同步检查
+
+- README / 英文 README：已同步桌面端入口、图标、PyAppify 与 Release 说明。
+- `AGENTS.md`：已同步脚本清理、版本号和 Release 维护规则。
+- 项目专属 Skill：已同步桌面端入口、图标、PyAppify 和 Release 规则。
+- `docs/superpowers/specs/` 与 `docs/superpowers/plans/`：已同步移除旧脚本入口、主题持久化、标签面板稳定渲染和 PyAppify 发版路径。
+- `jmcomic-option.yml`：仍应保持 ignored，不进入提交。
+
 ## 2026-06-18 12:31:24 +08:00
 
 ### 修改范围

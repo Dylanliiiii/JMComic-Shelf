@@ -126,11 +126,9 @@ dir_rule:
 
 ### Windows 脚本
 
-- `download-jmcomic.bat`：输入一个或多个 JM 号后下载。
-- `view-jmcomic.bat`：输入 JM 号后查看详情。
 - `start-jmcomic-shelf.bat`：从源码仓库启动桌面端。
 
-脚本应保持简单，适合不熟悉 PowerShell 的用户使用。
+桌面端已经提供下载和查看详情入口，旧的下载/预览双击脚本不再保留。源码启动脚本应保持简单，适合不熟悉 PowerShell 的用户使用。
 
 ## 桌面 UI 要求
 
@@ -201,8 +199,11 @@ python -m py_compile src\jmcomic\jm_plugin.py
 
 - 普通代码或文档修改完成并验证后，直接 commit 并 push 到 GitHub。
 - 默认推送到 `origin master`。
-- 不自动创建 tag，不自动创建 GitHub Release。
+- 默认不创建 tag，不创建 GitHub Release。
 - 只有用户明确要求“release / 发版 / 打包 / 发布新版本”时，才准备 release。
+- 正式桌面版 release 使用 `vMAJOR.MINOR.PATCH` 版本号，例如 `v0.1.0`。
+- 桌面应用打包使用 `pyappify.yml` 和 `.github/workflows/release.yml`，推送 `v*` tag 后由 GitHub Actions 调用 `ok-oldking/pyappify-action` 构建 Windows 包并上传到 GitHub Release。
+- 当前不配置 CNB 镜像或对应同步 Action，除非用户未来明确要求。
 - 如果用户表达“更新一下”“更新 GitHub”等，按普通 commit + push 处理。
 - 提交前确认 `jmcomic-option.yml` 仍是 ignored，且没有账号密码进入 diff。
 
@@ -212,4 +213,4 @@ python -m py_compile src\jmcomic\jm_plugin.py
 - 提供图形化配置向导，减少手写 YAML。
 - 提供下载任务管理、失败重试和补图入口。
 - 提供本地书库浏览、筛选、搜索和标签管理。
-- 在正式桌面应用阶段再设计 release、打包和版本更新规则。
+- 通过 PyAppify 继续完善桌面应用发布、自动更新和安装体验。

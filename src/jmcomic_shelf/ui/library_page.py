@@ -140,6 +140,9 @@ class LibraryPage(QWidget):
         self.available_tags = []
         self.active_tags = set()
         self.active_filter = 'all'
+        self.tag_buttons = {}
+        self.rendered_tag_keys = None
+        self.rendered_tag_columns = 0
         self.sync_thread = None
         self.sync_worker = None
         self.tag_button_height = 32
@@ -423,24 +426,39 @@ class LibraryPage(QWidget):
         self.reload(sync_index=False)
 
     def render_tag_buttons(self):
+        tag_keys = tuple(self.available_tags)
+        columns = max(1, min(6, self._column_count()))
+        if tag_keys == self.rendered_tag_keys and columns == self.rendered_tag_columns:
+            self.update_tag_button_states()
+            return
+
+        self._clear_tag_content()
+        self.tag_buttons = {}
+        self.rendered_tag_keys = tag_keys
+        self.rendered_tag_columns = columns
+        if not self.available_tags:
+            self.category_layout.addWidget(CaptionLabel('暂无标签', self.category_content), 0, 0)
+            return
+
+        for index, tag in enumerate(self.available_tags):
+            button = PushButton(tag, self.category_content)
+            button.setFixedHeight(self.tag_button_height)
+            button.clicked.connect(lambda checked=False, value=tag: self.toggle_tag_filter(value))
+            self.tag_buttons[tag] = button
+            self.category_layout.addWidget(button, index // columns, index % columns)
+        self.update_tag_button_states()
+        self.category_content.adjustSize()
+
+    def update_tag_button_states(self):
+        for tag, button in self.tag_buttons.items():
+            button.setStyleSheet(self._tag_button_style(tag in self.active_tags))
+
+    def _clear_tag_content(self):
         while self.category_layout.count():
             item = self.category_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
-
-        if not self.available_tags:
-            self.category_layout.addWidget(CaptionLabel('暂无标签', self.category_content), 0, 0)
-            return
-
-        columns = max(1, min(6, self._column_count()))
-        for index, tag in enumerate(self.available_tags):
-            button_cls = PrimaryPushButton if tag in self.active_tags else PushButton
-            button = button_cls(tag, self.category_content)
-            button.setFixedHeight(self.tag_button_height)
-            button.clicked.connect(lambda checked=False, value=tag: self.toggle_tag_filter(value))
-            self.category_layout.addWidget(button, index // columns, index % columns)
-        self.category_content.adjustSize()
 
     def update_filter_buttons(self):
         self.all_filter_button.setStyleSheet(self._filter_button_style(self.active_filter == 'all' and not self.active_tags))
@@ -472,6 +490,35 @@ class LibraryPage(QWidget):
             '}'
             f'PushButton:hover {{ background: {hover}; }}'
             f'PushButton:pressed {{ background: {pressed}; }}'
+        )
+
+    def _tag_button_style(self, active: bool) -> str:
+        if isDarkTheme():
+            background = '#2c2328'
+            active_background = '#26383c'
+            border = '#3b3035'
+            active_border = '#00c8d7'
+            color = '#d8cfd3'
+            active_color = '#ffffff'
+            hover = '#46363d'
+        else:
+            background = '#fbf7f8'
+            active_background = '#e8f9fb'
+            border = '#e4d8de'
+            active_border = '#00aeba'
+            color = '#1f1b1d'
+            active_color = '#102d31'
+            hover = '#ffffff'
+        return (
+            'PushButton {'
+            f'background: {active_background if active else background};'
+            f'color: {active_color if active else color};'
+            f'border: 1px solid {active_border if active else border};'
+            'border-radius: 6px;'
+            'font-size: 13px;'
+            'padding: 0 12px;'
+            '}'
+            f'PushButton:hover {{ background: {hover}; }}'
         )
 
     def _category_max_height(self):

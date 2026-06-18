@@ -31,6 +31,7 @@ dependencies = [
     "PySide6-Fluent-Widgets",
     "pycryptodome",
     "pyyaml",
+    "zhconv",
 ]
 dynamic = ["version"]
 
@@ -45,3 +46,6 @@ jmcomic-shelf = "jmcomic_shelf.app:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "jmcomic.__version__"}
+
+[tool.setuptools.package-data]
+jmcomic_shelf = ["assets/icon.png"]

@@ -37,4 +37,12 @@ def get_project_root() -> Path:
 
 
 def get_app_icon_path() -> str:
-    return str(get_project_root() / 'assets' / APP_ICON_NAME)
+    candidates = [
+        get_project_root() / 'assets' / APP_ICON_NAME,
+        Path.cwd() / 'assets' / APP_ICON_NAME,
+        Path(__file__).resolve().parent / 'assets' / APP_ICON_NAME,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return str(candidates[0])

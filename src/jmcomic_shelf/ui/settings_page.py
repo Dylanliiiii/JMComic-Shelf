@@ -108,7 +108,7 @@ class SettingsPage(QWidget):
         text_area.setContentsMargins(0, 0, 0, 0)
         text_area.setSpacing(8)
         text_area.addWidget(SubtitleLabel('外观主题', host))
-        desc = CaptionLabel('选择桌面端使用浅色、深色，或跟随系统主题。选择后会立即预览，保存设置后下次启动继续使用。', host)
+        desc = CaptionLabel('选择桌面端使用浅色、深色，或跟随系统主题。选择后会立即预览并保存，下次启动继续使用。', host)
         desc.setWordWrap(True)
         text_area.addWidget(desc)
         outer.addLayout(text_area, 1)
@@ -139,7 +139,9 @@ class SettingsPage(QWidget):
         return THEME_VALUES.get(self.theme_combo.currentText(), 'auto')
 
     def preview_theme(self, *_):
-        self.theme_changed.emit(self.current_theme_mode())
+        self.settings.theme_mode = self.current_theme_mode()
+        self.settings.save(self.settings_path)
+        self.theme_changed.emit(self.settings.theme_mode)
 
     def clear_cache(self):
         count = CoverCache(get_cover_cache_dir(self.app_data_dir.text().strip())).clear()

@@ -25,6 +25,9 @@ setup(
     author_email='93357912+hect0x7@users.noreply.github.com',
     packages=find_packages("src"),
     package_dir={"": "src"},
+    package_data={
+        'jmcomic_shelf': ['assets/icon.png'],
+    },
     python_requires=">=3.9",
     install_requires=[
         'curl_cffi',
