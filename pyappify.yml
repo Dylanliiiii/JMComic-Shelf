@@ -1,4 +1,4 @@
-name: "JMComic Shelf"
+name: "JMComic-Shelf"
 profiles:
   - name: "release"
     git_url: "https://github.com/Dylanliiiii/JMComic-Shelf.git"

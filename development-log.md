@@ -1,5 +1,28 @@
 ﻿# Development Log
 
+## 2026-06-18 12:58:10 +08:00
+
+### 修改范围
+
+- 修复 `v0.1.0` 首次 Release workflow 中 PyAppify 构建失败的问题。
+
+### 涉及文件
+
+- `pyappify.yml`
+- `development-log.md`
+
+### 具体内容
+
+- GitHub Actions 日志显示 PyAppify Action 会把 `pyappify.yml` 的 `name` 写入 Tauri/Cargo package name。
+- Cargo package name 不允许空格，原配置 `JMComic Shelf` 导致 `cargo metadata` 失败。
+- 将 `pyappify.yml` 的 `name` 改为 `JMComic-Shelf`；应用自身窗口标题和 README 展示名仍保持 `JMComic Shelf`。
+
+### 验证
+
+- 已重新解析 `pyappify.yml` 和 `.github/workflows/release.yml`，结果为 `yaml ok`。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 下一步提交修复后重新触发 Release workflow。
+
 ## 2026-06-18 12:52:38 +08:00
 
 ### 修改范围
