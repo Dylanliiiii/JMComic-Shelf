@@ -1,5 +1,110 @@
 ﻿# Development Log
 
+## Version 0.2.0 - 2026-06-20 03:55:00 +08:00
+
+### 修改范围
+
+- 禁漫预览页封面展示功能发布。
+- Release 版本号来源规则修正。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `src/jmcomic_shelf/detail_service.py`
+- `src/jmcomic_shelf/ui/detail_page.py`
+- `tests/test_jmcomic/test_shelf_detail_service.py`
+- `README.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `development-log.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新 Release 基线为 `v0.1.0`。
+- 本次包含用户可见的新功能：禁漫预览页在详情文字上方显示完整等比例封面图，并优先复用本地封面；缺失时缓存线上封面。因此按语义化版本从 `v0.1.0` 升级到 `v0.2.0`。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.2.0`。未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+- 新增 `DetailResult` 和 `fetch_album_detail_result()`，保留 `fetch_album_detail()` 兼容旧调用。
+- 修正并固化 release 版本号来源规则：以后发版必须以 `origin` 远端 tag 或 GitHub Releases 为准，禁止使用本地上游历史 tag 推断项目版本。
+
+### 验证情况
+
+- 已运行 `git ls-remote --tags origin`，确认远端当前仅返回 `v0.1.0`。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_detail_service -v`，6 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，48 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\detail_page.py`，通过。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已确认 `pyappify.yml`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+- 已确认 `jmcomic-option.yml` 仍被 `.gitignore` 忽略。
+
+## 2026-06-20 03:50:00 +08:00
+
+### 修改范围
+
+- 修正 JMComic Shelf release 版本号来源规则。
+- 参考 LaunchDock 的版本号、Release 和开发记录约定，补充本项目维护流程。
+
+### 涉及文件
+
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 复核 `origin` 远端 tag，确认当前 GitHub Release 基线只有 `v0.1.0`；本地 `git tag` 中的 `v2.x.x` 来源于上游历史标签，不能用于本项目发版。
+- 参考 `https://github.com/Dylanliiiii/LaunchDock`：日常开发记录只写日期时间，不写版本号；只有正式发布、打包或上线更新时才使用 `## Version x.x.x - 时间` 标题并更新项目自身版本号。
+- 在 `AGENTS.md` 和 `jmcomic-shelf-maintenance` 中新增硬性规则：正式 release 前必须通过 `git ls-remote --tags origin` 或 GitHub Releases 页面确认当前仓库远端最新版本；禁止用本地 `git tag`、`git describe --tags` 或上游 `src/jmcomic/__init__.py` 推断 JMComic Shelf 的最新 Release。
+- 补充语义化版本递增规则：主版本号用于大改或不兼容变更，次版本号用于新功能，修订号用于 bug 修复或小型改进；不确定时先向用户确认。
+- 本次为协作规则和项目专属 Skill 修正，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已运行 `git ls-remote --tags origin`，确认远端当前仅返回 `v0.1.0`。
+- 已运行 `git ls-remote --tags https://github.com/Dylanliiiii/LaunchDock.git`，确认参考项目发布标签从 `v1.0.0` 递增到 `v1.1.4`。
+- 已读取 LaunchDock 的 `AGENTS.md` 和 `development-log.md`，确认其日常开发记录与正式 `Version x.x.x` 发布记录的区分方式。
+- 本次为文档和流程规则更新，未运行应用单元测试。
+
+## 2026-06-20 03:45:00 +08:00
+
+### 修改范围
+
+- 禁漫预览页新增封面图展示。
+- 详情查询服务新增封面缓存结果，优先使用本地封面，缺失时缓存线上封面。
+- 同步 README、项目专属 Skill、桌面端 spec 和 plan。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/detail_service.py`
+- `src/jmcomic_shelf/ui/detail_page.py`
+- `tests/test_jmcomic/test_shelf_detail_service.py`
+- `README.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 新增 `DetailResult` 和 `fetch_album_detail_result()`，保留原 `fetch_album_detail()` 兼容旧调用。
+- 预览页查询时会先同步索引并查找本地记录；如果本地已有封面，直接显示本地封面；否则调用上游 `download_album_cover()` 将线上封面缓存到应用数据目录 `covers/`。
+- 禁漫预览页在详情文字上方新增封面显示区域，按完整等比例缩放，不裁剪、不截断。
+- 保持查询中状态、按钮禁用和 Enter 查询行为。
+- README、项目专属 Skill、桌面端 spec 和 plan 已同步新增的预览封面能力；`AGENTS.md` 的规则和工作流说明无需调整。
+- 本次未写入真实账号、cookie、token、代理配置、用户本地下载内容、PDF、封面或本地 `catalog.md`。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_detail_service -v`，6 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，48 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\detail_page.py`，通过。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已确认 `jmcomic-option.yml` 仍被 `.gitignore` 忽略。
+
 ## 2026-06-20 03:35:00 +08:00
 
 ### 修改范围

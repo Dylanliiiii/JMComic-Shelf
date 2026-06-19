@@ -1,9 +1,12 @@
-from PySide6.QtCore import Qt
+import os
+
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, LineEdit, PrimaryPushButton, PushButton, TitleLabel
 
 from jmcomic_shelf.database import ShelfDatabase
-from jmcomic_shelf.detail_service import fetch_album_detail
+from jmcomic_shelf.detail_service import fetch_album_detail_result
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
 from jmcomic_shelf.index_service import rebuild_index_from_download_dir, record_from_album
 from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_settings_path
@@ -34,6 +37,12 @@ class DetailPage(QWidget):
         header.addWidget(self.input, 1)
         header.addWidget(self.query_button)
 
+        self.cover = QLabel(self)
+        self.cover.setFixedSize(220, 300)
+        self.cover.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cover.setStyleSheet('background: transparent; border-radius: 6px;')
+        self.cover.hide()
+
         self.info = QLabel('尚未查询', self)
         self.info.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.info.setWordWrap(True)
@@ -53,6 +62,7 @@ class DetailPage(QWidget):
 
         layout.addLayout(header)
         layout.addWidget(note)
+        layout.addWidget(self.cover, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self.info, 1)
         layout.addLayout(actions)
         self.update_actions()
@@ -65,14 +75,23 @@ class DetailPage(QWidget):
 
         self.query_button.setEnabled(False)
         self.input.setEnabled(False)
+        self.set_cover('')
         self.info.setText(f'正在搜索中：JM{jm_id} ...')
         QApplication.processEvents()
         try:
             settings = ShelfSettings.load(get_settings_path())
             self._sync_index(settings)
-            album = fetch_album_detail(settings.option_path, jm_id)
-            record = record_from_album(album)
             self.local_record = self.find_local_record(jm_id, settings.app_data_dir)
+            local_cover_path = self.local_record.cover_path if self.local_record else ''
+            result = fetch_album_detail_result(
+                settings.option_path,
+                jm_id,
+                get_cover_cache_dir(settings.app_data_dir),
+                local_cover_path,
+            )
+            album = result.album
+            record = record_from_album(album)
+            self.set_cover(result.cover_path)
             self.info.setText(
                 f'标题：{record.title}\n'
                 f'JM号：JM{record.jm_id}\n'
@@ -110,6 +129,22 @@ class DetailPage(QWidget):
         available = bool(self.local_record and self.local_record.pdf_path)
         self.open_button.setEnabled(available)
         self.reveal_button.setEnabled(available)
+
+    def set_cover(self, cover_path: str):
+        if cover_path and os.path.exists(cover_path):
+            pixmap = QPixmap(cover_path)
+            if not pixmap.isNull():
+                scaled = pixmap.scaled(
+                    QSize(220, 300),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+                self.cover.setPixmap(scaled)
+                self.cover.show()
+                return
+
+        self.cover.clear()
+        self.cover.hide()
 
     def open_local_pdf(self):
         if self.local_record:

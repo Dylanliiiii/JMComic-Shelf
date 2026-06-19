@@ -12,7 +12,7 @@
 - `index_service.py`：JM album 到 SQLite 的映射，以及从下载目录重建索引。
 - `download_service.py`：解析多个 JM 号、执行下载、下载后将 PDF 归档到第一作者目录、缓存根目录 `Cover/` 封面并写入索引。
 - `ui/theme.py`：集中处理 QFluentWidgets 主题映射和强调色。
-- `detail_service.py`：查询单个 JM 号详情。
+- `detail_service.py`：查询单个 JM 号详情，并为预览页缓存可显示的封面图。
 - `file_actions.py`：打开 PDF 和在资源管理器中定位。
 - `ui/`：本地书库、禁漫下载、禁漫预览、设置页面。
 - `pyappify.yml`：PyAppify 桌面版发布配置。
@@ -64,6 +64,7 @@
 
 - 禁漫预览页查询期间显示搜索中状态，并暂时禁用输入框和按钮。
 - JM 号输入框按 Enter 应触发与“查看详情”按钮相同的查询逻辑。
+- 禁漫预览页在文字详情上方显示完整等比例封面图，优先复用本地封面，缺失时缓存线上封面。
 
 ### 5. 文档和编码清理
 

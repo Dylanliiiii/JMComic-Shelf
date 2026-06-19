@@ -67,7 +67,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - `database.py`：SQLite 书库索引。
 - `index_service.py`：JM album 元数据和下载目录扫描到 SQLite 的同步逻辑。
 - `download_service.py`：桌面端下载任务、下载后 PDF 归档、根目录 `Cover/` 封面缓存和索引更新。
-- `detail_service.py`：单个 JM 号详情查询。
+- `detail_service.py`：单个 JM 号详情查询，并为预览页缓存线上封面图。
 - `cover_cache.py`：完整封面缩略图缓存，不裁剪。
 - `ui/`：PySide6 + QFluentWidgets 页面。
 

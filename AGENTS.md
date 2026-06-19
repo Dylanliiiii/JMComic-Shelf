@@ -199,13 +199,20 @@ python -m py_compile src\jmcomic\jm_plugin.py
 
 日常修改不记录版本号。只有用户明确要求发版、打包或创建 release 时，才使用版本号记录。
 
+如果某次更新需要升级项目版本号，应在开发日志标题中标注版本号，格式如 `## Version 0.2.0 - 2026-06-20 10:00:00 +08:00`，并同步更新本项目自己的版本文件；日常开发和测试中的修改不改变版本号。这个规则参考 `https://github.com/Dylanliiiii/LaunchDock` 的开发记录约定：普通开发条目只写日期时间，正式发布条目才写 `Version x.x.x`。
+
 ## GitHub 维护规则
 
 - 普通代码或文档修改完成并验证后，直接 commit 并 push 到 GitHub。
 - 默认推送到 `origin master`。
 - 默认不创建 tag，不创建 GitHub Release。
 - 只有用户明确要求“release / 发版 / 打包 / 发布新版本”时，才准备 release。
+- 如果用户只说“更新一下”“更新版本”“更新 GitHub”等模糊表达，且无法判断是普通 push 还是正式 Release，必须先向用户确认。
 - 正式桌面版 release 使用 `vMAJOR.MINOR.PATCH` 版本号，例如 `v0.1.0`。
+- 正式发布前必须以当前仓库 `origin` 远端为准确认最新版本号，优先执行 `git ls-remote --tags origin`，必要时再查看 `https://github.com/Dylanliiiii/JMComic-Shelf/releases`。不得用本地 `git tag`、`git describe --tags` 或 `src/jmcomic/__init__.py` 推断本项目最新 Release，因为本仓库保留了上游 `hect0x7/JMComic-Crawler-Python` 的历史 tag 和版本号。
+- 版本递增遵循常见语义化版本：主版本号用于大改或不兼容变更，次版本号用于新功能，修订号用于 bug 修复或小型改进。例如当前远端最新为 `v0.1.0` 时，破坏性大改为 `v1.0.0`，普通新功能为 `v0.2.0`，修复或小改为 `v0.1.1`。如不确定版本级别，先向用户确认。
+- 正式发布时，需要在 `development-log.md` 顶部新增 `## Version x.x.x - YYYY-MM-DD HH:mm:ss +08:00` 记录，并在记录中写明用于确认版本基线的远端 tag 查询结果。
+- Release 正文应从上一次带 `Version` 的发布记录之后，到本次发布记录之间提炼重点，不应过长；小型格式、文案和布局调整用概括性描述即可。
 - 桌面应用打包使用 `pyappify.yml` 和 `.github/workflows/release.yml`，推送 `v*` tag 后由 GitHub Actions 调用 `ok-oldking/pyappify-action` 构建 Windows 包并上传到 GitHub Release。
 - 当前不配置 CNB 镜像或对应同步 Action，除非用户未来明确要求。
 - 如果用户表达“更新一下”“更新 GitHub”等，按普通 commit + push 处理。
