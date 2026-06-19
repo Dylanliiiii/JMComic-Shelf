@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, LineEdit, PrimaryPushButton, PushButton, TitleLabel
 
 from jmcomic_shelf.database import ShelfDatabase
@@ -28,6 +28,7 @@ class DetailPage(QWidget):
         header = QHBoxLayout()
         self.input = LineEdit(self)
         self.input.setPlaceholderText('输入 JM 号')
+        self.input.returnPressed.connect(self.load_detail)
         self.query_button = PrimaryPushButton('查看详情', self)
         self.query_button.clicked.connect(self.load_detail)
         header.addWidget(self.input, 1)
@@ -61,6 +62,11 @@ class DetailPage(QWidget):
         if not jm_id:
             self.info.setText('请输入 JM 号。')
             return
+
+        self.query_button.setEnabled(False)
+        self.input.setEnabled(False)
+        self.info.setText(f'正在搜索中：JM{jm_id} ...')
+        QApplication.processEvents()
         try:
             settings = ShelfSettings.load(get_settings_path())
             self._sync_index(settings)
@@ -79,6 +85,8 @@ class DetailPage(QWidget):
             self.local_record = None
             self.info.setText(str(e))
         finally:
+            self.query_button.setEnabled(True)
+            self.input.setEnabled(True)
             self.update_actions()
 
     def _sync_index(self, settings):

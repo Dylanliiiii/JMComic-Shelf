@@ -44,6 +44,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - 按作者分组。
 - 每个作者下独立编号。
 - 同一作者下按 JM ID 去重更新。
+- 多作者作品只登记到第一作者下，避免 catalog 和桌面书库重复计数。
 - 保留来源标题和作者文本；标签统一转换为中文简体后写入，方便搜索和分类筛选。
 - 记录标题、ID、链接、标签、章节。
 - 从本次下载成功的第一章第一张图片生成 base64 封面。
@@ -65,12 +66,12 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - `settings.py`：桌面端本地设置。
 - `database.py`：SQLite 书库索引。
 - `index_service.py`：JM album 元数据和下载目录扫描到 SQLite 的同步逻辑。
-- `download_service.py`：桌面端下载任务和下载后索引更新。
+- `download_service.py`：桌面端下载任务、下载后 PDF 归档、根目录 `Cover/` 封面缓存和索引更新。
 - `detail_service.py`：单个 JM 号详情查询。
 - `cover_cache.py`：完整封面缩略图缓存，不裁剪。
 - `ui/`：PySide6 + QFluentWidgets 页面。
 
-书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有漫画目录和 PDF，再显示结果。
+书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有 PDF、根目录 `Cover/` 封面缓存和旧版漫画图片目录，再显示结果。
 SQLite 标签应与 `catalog.md` 一致统一保存为中文简体；书库页的“分类”按钮应展开当前书库出现过的全部标签，标签面板最多展示五行并支持滚动；可同时选择多个标签，满足任一选中标签的漫画都会显示。
 
 ### Windows 脚本
@@ -132,6 +133,8 @@ rule: Bd / Aauthor / JM{Aid}-{Atitle} / 第{Pindex}章
 
 如果用户要求恢复章节标题目录，需要提醒 Windows 长路径风险。
 
+下载完成并生成 PDF 后，桌面端会把最终文件整理为 `下载根目录 / 第一作者 / JM{Aid}-{Atitle}.pdf`，并把第一面图片复制到 `下载根目录 / Cover / JM{Aid}-{Atitle}.jpg`。章节图片目录只作为中间产物，整理完成后不再保留。
+
 ## README 与文档
 
 README 应保持：
@@ -183,8 +186,19 @@ Windows 脚本：
 ## 常见风险
 
 - 长标题导致 Windows 路径过长。
-- 多作者作品下载文件只在第一作者目录，但 catalog 和桌面索引可能需要在多个作者下展示。
+- 多作者作品下载文件、catalog 和桌面索引都只保留第一作者；如果旧 catalog 曾在多个作者下登记同一 JM ID，更新时应移除其他作者下的重复项。
 - base64 封面会让 `catalog.md` 变大。
 - 网络封面接口可能拿到裁切缩略图，目录封面应优先使用已下载的第一张图片。
+- 根目录 `Cover/` 是封面缓存目录，不应提交到仓库；书库扫描应跳过它作为作品目录。
 - 真实配置文件不能提交。
 - 只写 SQLite 不扫现有下载目录，会导致用户已有漫画在书库页不显示。
+
+## 任务续做台账
+
+根目录 `TASKS.md` 记录当前正在执行但尚未全部完成的目标。
+
+- 开始修改代码、脚本或文档前，除 `AGENTS.md`、本 Skill、维护 Skill、相关 spec/plan 和开发记录外，也要读取 `TASKS.md`。
+- 如果用户提出的新任务还没有写入 `TASKS.md`，先拆成可勾选步骤写入。
+- 完成每一步后及时更新勾选状态。
+- 所有步骤完成、验证通过并准备交付后，清空本次任务，只保留“暂无进行中任务”。
+- 不在 `TASKS.md` 写入账号、密码、cookie、token、本地下载内容、PDF、封面、`catalog.md` 内容或真实私有配置。

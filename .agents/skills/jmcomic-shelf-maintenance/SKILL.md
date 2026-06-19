@@ -107,5 +107,15 @@ README / AGENTS / Skill：
 - `origin` 指向 `https://github.com/Dylanliiiii/JMComic-Shelf.git`。
 - `upstream` 指向 `https://github.com/hect0x7/JMComic-Crawler-Python.git`。
 - `development-log.md` 已记录本次修改。
+- `TASKS.md` 已更新当前步骤状态；如果本次任务已全部完成并验证通过，则已清空本次任务，只保留“暂无进行中任务”。
 - README、AGENTS、项目专属 Skill、spec 和 plan 没有明显过期，或已在开发记录中说明无需更新。
 - 最终回复包含提交哈希、push 结果和验证情况。
+
+## 任务续做台账
+
+根目录 `TASKS.md` 是普通修改流程的一部分。
+
+- 开始维护、收尾、提交或 push 前，检查 `TASKS.md` 是否仍有未完成任务。
+- 如果还有未完成任务，不要清空；在最终回复中说明剩余步骤。
+- 如果所有任务已完成且验证通过，提交前把本次任务清空为“暂无进行中任务”。
+- `TASKS.md` 只记录任务状态，不记录敏感配置或用户本地下载内容。

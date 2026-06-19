@@ -1,6 +1,6 @@
-from collections import OrderedDict
 import os
 import re
+from collections import OrderedDict
 from typing import Iterable
 
 from jmcomic.jm_plugin import CatalogPlugin
@@ -24,7 +24,7 @@ def record_from_album(album, pdf_path: str = '', cover_path: str = '') -> AlbumR
         link=info['link'],
         pdf_path=pdf_path,
         cover_path=cover_path,
-        authors=info['authors'],
+        authors=_first_author_list(info['authors']),
         tags=info['tags'],
         chapters=info['chapters'],
     )
@@ -33,8 +33,8 @@ def record_from_album(album, pdf_path: str = '', cover_path: str = '') -> AlbumR
 def group_by_author(records: Iterable[AlbumRecord]):
     grouped = OrderedDict()
     for record in records:
-        for author in record.authors or ['未知作者']:
-            grouped.setdefault(author, []).append(record)
+        author = _first_author(record.authors) or '未知作者'
+        grouped.setdefault(author, []).append(record)
     return grouped
 
 
@@ -58,7 +58,7 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
     by_id: OrderedDict[str, AlbumRecord] = OrderedDict()
     catalog_by_id = _catalog_records_by_id(download_dir)
     for root, dirs, files in walk_paths(download_dir):
-        dirs[:] = [name for name in dirs if name not in {'.git', '__pycache__'}]
+        dirs[:] = [name for name in dirs if name not in {'.git', '__pycache__', 'Cover', 'covers'}]
         author = _author_from_album_root(download_dir, root)
         album_match = ALBUM_DIR_RE.match(os.path.basename(root).strip())
         if album_match:
@@ -75,10 +75,10 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
             )
             if not record.album_dir:
                 record.album_dir = root
-            if author and author not in record.authors:
-                record.authors.append(author)
+            if author and not record.authors:
+                record.authors = [author]
             if not record.cover_path:
-                record.cover_path = _cover_for_album(jm_id, root, cover_cache_dir)
+                record.cover_path = _cover_for_album(download_dir, jm_id, root, cover_cache_dir)
 
         for filename in files:
             pdf_match = PDF_RE.match(filename)
@@ -88,17 +88,24 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
             pdf_path = os.path.join(root, filename)
             if not path_exists(pdf_path):
                 continue
+            pdf_author = _author_from_pdf_root(download_dir, root)
             record = by_id.setdefault(
                 jm_id,
                 AlbumRecord(
                     jm_id=jm_id,
                     title=pdf_match.group('title').strip(),
-                    authors=[author] if author else [],
+                    authors=[pdf_author] if pdf_author else [],
                 ),
             )
             record.pdf_path = pdf_path
+            if not record.album_dir:
+                record.album_dir = _album_dir_from_pdf(download_dir, root)
             if not record.title:
                 record.title = pdf_match.group('title').strip()
+            if pdf_author and not record.authors:
+                record.authors = [pdf_author]
+            if not record.cover_path:
+                record.cover_path = _cover_for_album(download_dir, jm_id, record.album_dir or root, cover_cache_dir)
 
     for jm_id, record in by_id.items():
         _merge_catalog_record(record, catalog_by_id.get(jm_id))
@@ -116,7 +123,7 @@ def _catalog_records_by_id(download_dir: str) -> dict[str, dict]:
             if not jm_id:
                 continue
             record = by_id.setdefault(jm_id, {'authors': [], 'tags': [], 'link': '', 'chapters': []})
-            if author and author not in record['authors']:
+            if author and not record['authors']:
                 record['authors'].append(author)
             for tag in item.get('tags', []):
                 if tag and tag not in record['tags']:
@@ -131,9 +138,8 @@ def _catalog_records_by_id(download_dir: str) -> dict[str, dict]:
 def _merge_catalog_record(record: AlbumRecord, catalog_record: dict | None) -> None:
     if not catalog_record:
         return
-    for author in catalog_record.get('authors', []):
-        if author and author not in record.authors:
-            record.authors.append(author)
+    if not record.authors:
+        record.authors = _first_author_list(catalog_record.get('authors', []))
     record.tags = list(catalog_record.get('tags', []))
     if catalog_record.get('link') and not record.link:
         record.link = catalog_record['link']
@@ -147,6 +153,21 @@ def _author_from_album_root(download_dir: str, root: str) -> str:
         return ''
     parts = rel.split(os.sep)
     return parts[0] if len(parts) >= 2 else ''
+
+
+def _author_from_pdf_root(download_dir: str, root: str) -> str:
+    rel = os.path.relpath(root, download_dir)
+    if rel == '.':
+        return ''
+    parts = rel.split(os.sep)
+    return parts[0] if parts else ''
+
+
+def _album_dir_from_pdf(download_dir: str, root: str) -> str:
+    rel = os.path.relpath(root, download_dir)
+    if rel == '.':
+        return ''
+    return root
 
 
 def _chapters_from_album_dir(album_dir: str) -> list[dict[str, str]]:
@@ -163,8 +184,8 @@ def _chapter_index(name: str) -> str:
     return match.group(1) if match else ''
 
 
-def _cover_for_album(jm_id: str, album_dir: str, cover_cache_dir: str = '') -> str:
-    source = _first_image(album_dir)
+def _cover_for_album(download_dir: str, jm_id: str, album_dir: str, cover_cache_dir: str = '') -> str:
+    source = _root_cover_image(download_dir, jm_id) or _first_image(album_dir)
     if not source:
         return ''
     if not cover_cache_dir:
@@ -176,8 +197,35 @@ def _cover_for_album(jm_id: str, album_dir: str, cover_cache_dir: str = '') -> s
 
 
 def _first_image(album_dir: str) -> str:
-    for root, _, files in os.walk(album_dir):
+    if not album_dir or not os.path.isdir(path_for_open(album_dir)):
+        return ''
+    for root, _, files in os.walk(path_for_open(album_dir)):
         for filename in sorted(files):
             if os.path.splitext(filename)[1].lower() in IMAGE_EXTS:
                 return os.path.join(root, filename)
     return ''
+
+
+def _root_cover_image(download_dir: str, jm_id: str) -> str:
+    cover_dir = os.path.join(download_dir, 'Cover')
+    if not os.path.isdir(path_for_open(cover_dir)):
+        return ''
+    prefix = f'JM{jm_id}'
+    for filename in sorted(os.listdir(path_for_open(cover_dir))):
+        stem, ext = os.path.splitext(filename)
+        if stem.startswith(prefix) and ext.lower() in IMAGE_EXTS:
+            return os.path.join(cover_dir, filename)
+    return ''
+
+
+def _first_author(authors: Iterable[str]) -> str:
+    for author in authors or []:
+        author = str(author).strip()
+        if author:
+            return author
+    return ''
+
+
+def _first_author_list(authors: Iterable[str]) -> list[str]:
+    author = _first_author(authors)
+    return [author] if author else []

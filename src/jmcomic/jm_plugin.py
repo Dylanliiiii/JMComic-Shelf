@@ -893,6 +893,8 @@ class CatalogPlugin(JmOptionPlugin):
         if cover:
             album_info['cover'] = cover
 
+        primary_author = album_info['authors'][0]
+        self.remove_album_from_other_authors(catalog, album_info['id'], primary_author)
         for author in album_info['authors']:
             items = catalog.setdefault(author, [])
             index = self.find_album_index(items, album_info['id'])
@@ -913,6 +915,7 @@ class CatalogPlugin(JmOptionPlugin):
         authors = cls.clean_values(getattr(album, 'authors', None))
         if not authors:
             authors = [cls.clean_text(getattr(album, 'author', JmModuleConfig.DEFAULT_AUTHOR))]
+        authors = authors[:1]
 
         return {
             'id': str(album.album_id),
@@ -1197,6 +1200,18 @@ class CatalogPlugin(JmOptionPlugin):
             if item['id'] == album_id:
                 return index
         return -1
+
+    @classmethod
+    def remove_album_from_other_authors(cls, catalog: dict, album_id: str, primary_author: str) -> None:
+        empty_authors = []
+        for author, items in catalog.items():
+            if author == primary_author:
+                continue
+            catalog[author] = [item for item in items if item.get('id') != album_id]
+            if not catalog[author]:
+                empty_authors.append(author)
+        for author in empty_authors:
+            catalog.pop(author, None)
 
     @classmethod
     def write_catalog(cls, filepath: str, catalog: dict, cover_width=default_cover_width):

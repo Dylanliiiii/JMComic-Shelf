@@ -1,12 +1,17 @@
 import os
 import re
+import shutil
 from dataclasses import dataclass
-from typing import List
+from typing import Iterable, List
 
 from .database import ShelfDatabase
 from .index_service import record_from_album
-from .path_utils import path_exists, walk_paths
+from .path_utils import path_exists, path_for_open, walk_paths
 from .paths import get_database_path
+
+
+IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+WINDOWS_INVALID_CHARS = r'<>:"/\|?*'
 
 
 def parse_album_ids(text: str) -> List[str]:
@@ -76,22 +81,88 @@ class DownloadService:
             pdf_path = self.find_pdf_path(str(album.album_id), album.name)
             if not pdf_path:
                 raise FileNotFoundError(f'下载完成，但未找到生成的 PDF：JM{album.album_id}')
-            self.index_album(album, pdf_path)
+            pdf_path, cover_path = self.organize_downloaded_album(album, pdf_path, option)
+            self.index_album(album, pdf_path, cover_path)
             task.mark_success()
         except Exception as e:
             task.mark_failed(e)
         return task
 
-    def index_album(self, album, pdf_path: str | None = None) -> None:
+    def index_album(self, album, pdf_path: str | None = None, cover_path: str = '') -> None:
         db = ShelfDatabase(get_database_path(self.app_data_dir))
         db.open()
         try:
             db.upsert_album(record_from_album(
                 album,
                 pdf_path=pdf_path if pdf_path is not None else self.find_pdf_path(str(album.album_id), album.name),
+                cover_path=cover_path,
             ))
         finally:
             db.close()
+
+    def organize_downloaded_album(self, album, pdf_path: str, option=None) -> tuple[str, str]:
+        if not self.download_dir or not os.path.isdir(path_for_open(self.download_dir)):
+            return pdf_path, ''
+
+        jm_id = str(album.album_id)
+        title = _safe_path_segment(getattr(album, 'name', '') or jm_id)
+        author = _safe_path_segment(_first_author(getattr(album, 'authors', [])) or getattr(album, 'author', '') or '未知作者')
+        final_dir = os.path.join(self.download_dir, author)
+        os.makedirs(path_for_open(final_dir), exist_ok=True)
+        final_pdf = os.path.join(final_dir, f'JM{jm_id}-{title}.pdf')
+
+        album_dir = self._find_album_dir(album, pdf_path, option)
+        first_image = _first_image(album_dir)
+        cover_path = self._copy_cover(jm_id, title, first_image)
+
+        if os.path.abspath(pdf_path) != os.path.abspath(final_pdf):
+            os.makedirs(path_for_open(os.path.dirname(final_pdf)), exist_ok=True)
+            if os.path.exists(path_for_open(final_pdf)):
+                os.remove(path_for_open(final_pdf))
+            shutil.move(path_for_open(pdf_path), path_for_open(final_pdf))
+
+        self._remove_album_image_dir(album_dir, final_dir)
+        return final_pdf, cover_path
+
+    def _find_album_dir(self, album, pdf_path: str, option=None) -> str:
+        pdf_dir = os.path.dirname(pdf_path)
+        if re.match(r'^JM\d+-.+', os.path.basename(pdf_dir), re.IGNORECASE):
+            return pdf_dir
+
+        if option is not None:
+            try:
+                album_dir = option.dir_rule.decide_album_root_dir(album)
+                if album_dir and os.path.isdir(path_for_open(album_dir)):
+                    return album_dir
+            except Exception:
+                pass
+
+        target_name = f'JM{album.album_id}-'
+        for root, dirs, _ in walk_paths(self.download_dir):
+            for name in dirs:
+                candidate = os.path.join(root, name)
+                if name.startswith(target_name) and os.path.isdir(path_for_open(candidate)):
+                    return candidate
+        return ''
+
+    def _copy_cover(self, jm_id: str, title: str, source_path: str) -> str:
+        if not source_path:
+            return ''
+        ext = os.path.splitext(source_path)[1].lower() or '.jpg'
+        cover_dir = os.path.join(self.download_dir, 'Cover')
+        os.makedirs(path_for_open(cover_dir), exist_ok=True)
+        cover_path = os.path.join(cover_dir, f'JM{jm_id}-{title}{ext}')
+        shutil.copy2(path_for_open(source_path), path_for_open(cover_path))
+        return cover_path
+
+    def _remove_album_image_dir(self, album_dir: str, final_dir: str) -> None:
+        if not album_dir or not os.path.isdir(path_for_open(album_dir)):
+            return
+        if not _is_inside(album_dir, self.download_dir):
+            return
+        if os.path.abspath(album_dir) == os.path.abspath(final_dir):
+            return
+        shutil.rmtree(path_for_open(album_dir))
 
     def find_pdf_path(self, jm_id: str, title: str = '') -> str:
         if not self.download_dir or not os.path.isdir(self.download_dir):
@@ -106,3 +177,37 @@ class DownloadService:
                     if path_exists(pdf_path):
                         return pdf_path
         return ''
+
+
+def _safe_path_segment(value: str) -> str:
+    value = str(value).strip()
+    cleaned = ''.join('_' if ch in WINDOWS_INVALID_CHARS or ord(ch) < 32 else ch for ch in value)
+    cleaned = cleaned.strip(' .')
+    return cleaned or '未命名'
+
+
+def _first_author(authors: Iterable[str]) -> str:
+    for author in authors or []:
+        author = str(author).strip()
+        if author:
+            return author
+    return ''
+
+
+def _first_image(album_dir: str) -> str:
+    if not album_dir or not os.path.isdir(path_for_open(album_dir)):
+        return ''
+    for root, _, files in os.walk(path_for_open(album_dir)):
+        for filename in sorted(files):
+            if os.path.splitext(filename)[1].lower() in IMAGE_EXTS:
+                return os.path.join(root, filename)
+    return ''
+
+
+def _is_inside(path: str, root: str) -> bool:
+    try:
+        path = os.path.abspath(path)
+        root = os.path.abspath(root)
+        return os.path.commonpath([path, root]) == root
+    except ValueError:
+        return False

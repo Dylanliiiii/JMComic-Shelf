@@ -106,7 +106,7 @@ class Test_CatalogPlugin(unittest.TestCase):
 
             self.assertEqual(content.count('data:image/jpeg;base64,Y292ZXItYnl0ZXM='), 1)
 
-    def test_catalog_plugin_writes_author_grouped_index(self):
+    def test_catalog_plugin_writes_author_grouped_index_using_first_author_only(self):
         from jmcomic.jm_plugin import CatalogPlugin
 
         album_a = FakeCatalogAlbum(
@@ -146,14 +146,7 @@ class Test_CatalogPlugin(unittest.TestCase):
                 '   - \U0001f194 ID\uff1aJM123456\n'
                 '   - \U0001f517 \u94fe\u63a5\uff1ahttps://18comic.vip/album/123456/\n'
                 '   - \U0001f3f7\ufe0f \u6807\u7b7e\uff1a\u6807\u7b7e3\n'
-                '   - \U0001f4d1 \u7ae0\u8282\uff1a\u7b2c1\u8bdd \u4f5c\u54c1B (id: 123456)\n'
-                '\n'
-                '# \u4f5c\u8005B\n'
-                '1. \U0001f4d6 \u6807\u9898\uff1a\u4f5c\u54c1A\n'
-                '   - \U0001f194 ID\uff1aJM211899\n'
-                '   - \U0001f517 \u94fe\u63a5\uff1ahttps://18comic.vip/album/211899/\n'
-                '   - \U0001f3f7\ufe0f \u6807\u7b7e\uff1a\u6807\u7b7e1, \u6807\u7b7e2\n'
-                '   - \U0001f4d1 \u7ae0\u8282\uff1a\u7b2c1\u8bdd \u4f5c\u54c1A (id: 211899)\n',
+                '   - \U0001f4d1 \u7ae0\u8282\uff1a\u7b2c1\u8bdd \u4f5c\u54c1B (id: 123456)\n',
             )
 
     def test_catalog_plugin_keeps_title_and_author_but_normalizes_tags_to_simplified_chinese(self):

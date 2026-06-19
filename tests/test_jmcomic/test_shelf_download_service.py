@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 class FakeDownloadedAlbum:
     album_id = '211899'
     name = '作品A'
-    authors = ['作者A']
+    authors = ['作者A', '作者B']
     tags = ['标签1']
     episode_list = [('211899', '1', '作品A')]
 
@@ -77,7 +77,47 @@ class TestShelfDownloadService(unittest.TestCase):
             finally:
                 db.close()
             self.assertEqual(len(records), 1)
-            self.assertEqual(records[0].pdf_path, pdf_path)
+            self.assertEqual(records[0].pdf_path, os.path.join(tmp, '作者A', 'JM211899-作品A.pdf'))
+            self.assertEqual(records[0].authors, ['作者A'])
+
+    def test_run_task_moves_pdf_to_first_author_dir_caches_cover_and_removes_images(self):
+        from PIL import Image
+
+        from jmcomic_shelf.download_service import DownloadService, DownloadTask
+
+        with TemporaryDirectory() as tmp:
+            option_path = os.path.join(tmp, 'jmcomic-option.yml')
+            with open(option_path, 'w', encoding='utf-8') as f:
+                f.write('version: "2.1"\n')
+            album_dir = os.path.join(tmp, '作者A', 'JM211899-作品A')
+            image_dir = os.path.join(album_dir, '第1章')
+            os.makedirs(image_dir)
+            Image.new('RGB', (120, 180), 'red').save(os.path.join(image_dir, '00001.jpg'))
+            original_pdf = os.path.join(album_dir, 'JM211899-作品A.pdf')
+            with open(original_pdf, 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            def fake_download_album(jm_id, option):
+                return FakeDownloadedAlbum(), object()
+
+            task = DownloadTask(jm_id='211899')
+            service = DownloadService(
+                option_path,
+                app_data_dir=os.path.join(tmp, 'app'),
+                download_dir=tmp,
+                option_factory=lambda path: object(),
+                download_func=fake_download_album,
+            )
+
+            service.run_task(task)
+
+            final_pdf = os.path.join(tmp, '作者A', 'JM211899-作品A.pdf')
+            final_cover = os.path.join(tmp, 'Cover', 'JM211899-作品A.jpg')
+            self.assertEqual(task.status, 'success')
+            self.assertTrue(os.path.exists(final_pdf))
+            self.assertTrue(os.path.exists(final_cover))
+            self.assertFalse(os.path.exists(original_pdf))
+            self.assertFalse(os.path.exists(album_dir))
 
     def test_run_task_fails_when_pdf_plugin_did_not_create_pdf(self):
         from jmcomic_shelf.download_service import DownloadService, DownloadTask

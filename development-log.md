@@ -1,5 +1,56 @@
 ﻿# Development Log
 
+## 2026-06-20 02:55:00 +08:00
+
+### 修改范围
+
+- 调整桌面端下载后的本地文件结构：作者目录下只保留 PDF，图片目录作为中间产物不再保留。
+- 新增下载根目录 `Cover/` 封面缓存逻辑，保存每本漫画第一面图片供书库读取。
+- 修复多作者作品在 `catalog.md` 和桌面端书库中按多个作者重复出现的问题，统一只保留第一作者。
+- 改进禁漫预览页交互，查询期间显示搜索中状态，并支持输入框按 Enter 查询。
+- 新增根目录 `TASKS.md` 作为跨会话任务台账，并同步项目协作规则、项目专属 Skill、README、规格和计划文档。
+
+### 涉及文件
+
+- `TASKS.md`
+- `AGENTS.md`
+- `README.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `src/jmcomic/jm_plugin.py`
+- `src/jmcomic_shelf/download_service.py`
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/detail_service.py`
+- `src/jmcomic_shelf/ui/detail_page.py`
+- `tests/test_jmcomic/test_jm_plugin.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `tests/test_jmcomic/test_shelf_detail_service.py`
+- `development-log.md`
+
+### 具体内容
+
+- 下载服务在上游插件生成 PDF 后，会把最终 PDF 移动到 `下载根目录 / 第一作者 / JM号-作品名.pdf`。
+- 下载服务会从作品图片目录中复制第一张图片到 `下载根目录 / Cover / JM号-作品名.扩展名`，再删除下载阶段产生的作品图片目录。
+- 书库扫描跳过根目录 `Cover/`，支持新结构的作者目录 PDF、根目录封面缓存、旧版作品图片目录和下载根目录或子目录中的 PDF。
+- 桌面端索引、书库作者分组和 catalog 合并逻辑均按第一作者保存；旧 catalog 中同一 JM ID 在多个作者下重复登记时，扫描和更新会只保留第一作者语义。
+- `CatalogPlugin` 生成 Markdown 总目录时只登记第一作者，并在更新同一作品时移除其他作者分组下的重复条目。
+- 禁漫预览页输入框绑定 Enter 查询；查询期间显示 `正在搜索中` 状态，并暂时禁用输入框和按钮，完成或失败后恢复。
+- 新增 `TASKS.md` 规则：开工时登记任务，完成一点标记一点，全部验证通过后清空当前任务，方便上下文压缩或新开对话续做。
+- README、`AGENTS.md`、项目专属 Skill、桌面端 spec 和 plan 已同步新的 PDF-only 作者目录、根目录 `Cover/`、第一作者去重和预览交互规则。
+- 本次未写入真实账号、cookie、token、代理配置、用户本地下载内容、PDF、封面或本地 `catalog.md`。
+
+### 验证情况
+
+- 已先按 TDD 增加/更新测试，并确认新测试在旧实现下失败。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，45 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p test_jm_plugin.py -k catalog -v`，5 项通过。
+- 直接运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic\jm_plugin.py` 时仍因仓库内 `__pycache__` 权限/占用报 `Permission denied`；已改用 `$env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache')` 后通过。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`，本次改变用户可见文件结构与交互行为，相关文档均已同步。
+
 ## 2026-06-20 01:11:56 +08:00
 
 ### 修改范围
