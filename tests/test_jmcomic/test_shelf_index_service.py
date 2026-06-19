@@ -1,4 +1,5 @@
 from test_jmcomic import *
+from unittest.mock import patch
 
 
 class FakeShelfAlbum:
@@ -71,6 +72,43 @@ class TestShelfIndexService(unittest.TestCase):
             self.assertEqual(records[0].pdf_path, pdf_path)
             self.assertEqual(records[0].album_dir, os.path.dirname(album_dir))
             self.assertTrue(os.path.exists(records[0].cover_path))
+
+    def test_rebuild_index_from_download_dir_writes_records_in_one_batch(self):
+        from tempfile import TemporaryDirectory
+
+        from jmcomic_shelf.index_service import rebuild_index_from_download_dir
+
+        calls = []
+
+        class FakeDatabase:
+            def __init__(self, db_path):
+                self.db_path = db_path
+
+            def open(self):
+                calls.append(('open', self.db_path))
+
+            def upsert_albums(self, records):
+                calls.append(('batch', [record.jm_id for record in records]))
+
+            def upsert_album(self, record):
+                calls.append(('single', record.jm_id))
+
+            def close(self):
+                calls.append(('close', self.db_path))
+
+        with TemporaryDirectory() as tmp:
+            author_dir = os.path.join(tmp, 'A作者')
+            os.makedirs(author_dir)
+            for jm_id in ['100', '200']:
+                with open(os.path.join(author_dir, f'JM{jm_id}-作品{jm_id}.pdf'), 'wb') as f:
+                    f.write(b'%PDF-1.4\n')
+
+            with patch('jmcomic_shelf.index_service.ShelfDatabase', FakeDatabase):
+                count = rebuild_index_from_download_dir(tmp, os.path.join(tmp, 'app', 'shelf.db'))
+
+        self.assertEqual(count, 2)
+        self.assertEqual([call[0] for call in calls], ['open', 'batch', 'close'])
+        self.assertEqual(calls[1][1], ['200', '100'])
 
     def test_rebuild_index_from_pdf_only_author_dir_uses_cover_folder(self):
         from tempfile import TemporaryDirectory

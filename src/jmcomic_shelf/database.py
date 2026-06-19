@@ -50,6 +50,18 @@ CREATE TABLE IF NOT EXISTS chapters (
 );
 """
 
+ALBUM_ORDER_SQL = """
+ORDER BY
+  COALESCE((
+    SELECT MIN(au.name)
+    FROM album_authors aa
+    JOIN authors au ON au.id = aa.author_id
+    WHERE aa.jm_id = a.jm_id
+  ), '') COLLATE NOCASE,
+  CAST(a.jm_id AS INTEGER) DESC,
+  a.jm_id DESC
+"""
+
 
 class ShelfDatabase:
 
@@ -94,45 +106,54 @@ class ShelfDatabase:
     def upsert_album(self, record: AlbumRecord) -> None:
         conn = self._require_conn()
         with conn:
+            self._upsert_album_in_transaction(conn, record)
+
+    def upsert_albums(self, records: List[AlbumRecord]) -> None:
+        conn = self._require_conn()
+        with conn:
+            for record in records:
+                self._upsert_album_in_transaction(conn, record)
+
+    def _upsert_album_in_transaction(self, conn, record: AlbumRecord) -> None:
+        conn.execute(
+            """
+            INSERT INTO albums (jm_id, title, link, pdf_path, cover_path, album_dir, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(jm_id) DO UPDATE SET
+              title=excluded.title,
+              link=excluded.link,
+              pdf_path=excluded.pdf_path,
+              cover_path=excluded.cover_path,
+              album_dir=excluded.album_dir,
+              updated_at=CURRENT_TIMESTAMP
+            """,
+            (record.jm_id, record.title, record.link, record.pdf_path, record.cover_path, record.album_dir),
+        )
+        conn.execute('DELETE FROM album_authors WHERE jm_id = ?', (record.jm_id,))
+        conn.execute('DELETE FROM album_tags WHERE jm_id = ?', (record.jm_id,))
+        conn.execute('DELETE FROM chapters WHERE jm_id = ?', (record.jm_id,))
+
+        for author in record.authors:
+            author_id = self._id_for('authors', author)
+            conn.execute('INSERT OR IGNORE INTO album_authors VALUES (?, ?)', (record.jm_id, author_id))
+
+        for tag in record.tags:
+            tag = self._normalize_tag(tag)
+            if not tag:
+                continue
+            tag_id = self._id_for('tags', tag)
+            conn.execute('INSERT OR IGNORE INTO album_tags VALUES (?, ?)', (record.jm_id, tag_id))
+
+        for chapter in record.chapters:
             conn.execute(
-                """
-                INSERT INTO albums (jm_id, title, link, pdf_path, cover_path, album_dir, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(jm_id) DO UPDATE SET
-                  title=excluded.title,
-                  link=excluded.link,
-                  pdf_path=excluded.pdf_path,
-                  cover_path=excluded.cover_path,
-                  album_dir=excluded.album_dir,
-                  updated_at=CURRENT_TIMESTAMP
-                """,
-                (record.jm_id, record.title, record.link, record.pdf_path, record.cover_path, record.album_dir),
+                'INSERT OR REPLACE INTO chapters VALUES (?, ?, ?, ?)',
+                (
+                    record.jm_id,
+                    str(chapter.get('id', '')),
+                    str(chapter.get('index', '')),
+                    str(chapter.get('title', '')),
+                ),
             )
-            conn.execute('DELETE FROM album_authors WHERE jm_id = ?', (record.jm_id,))
-            conn.execute('DELETE FROM album_tags WHERE jm_id = ?', (record.jm_id,))
-            conn.execute('DELETE FROM chapters WHERE jm_id = ?', (record.jm_id,))
-
-            for author in record.authors:
-                author_id = self._id_for('authors', author)
-                conn.execute('INSERT OR IGNORE INTO album_authors VALUES (?, ?)', (record.jm_id, author_id))
-
-            for tag in record.tags:
-                tag = self._normalize_tag(tag)
-                if not tag:
-                    continue
-                tag_id = self._id_for('tags', tag)
-                conn.execute('INSERT OR IGNORE INTO album_tags VALUES (?, ?)', (record.jm_id, tag_id))
-
-            for chapter in record.chapters:
-                conn.execute(
-                    'INSERT OR REPLACE INTO chapters VALUES (?, ?, ?, ?)',
-                    (
-                        record.jm_id,
-                        str(chapter.get('id', '')),
-                        str(chapter.get('index', '')),
-                        str(chapter.get('title', '')),
-                    ),
-                )
 
     def delete_albums(self, jm_ids: list[str]) -> int:
         normalized = [str(jm_id).removeprefix('JM').removeprefix('jm') for jm_id in jm_ids]
@@ -174,7 +195,7 @@ class ShelfDatabase:
             params = [like, like, like, like]
 
         rows = conn.execute(
-            f'SELECT * FROM albums a {where} ORDER BY updated_at DESC, jm_id DESC',
+            f'SELECT * FROM albums a {where} {ALBUM_ORDER_SQL}',
             params,
         ).fetchall()
         return [self._row_to_album(row) for row in rows]
@@ -195,13 +216,13 @@ class ShelfDatabase:
         conn = self._require_conn()
         tag = self._normalize_tag(tag)
         rows = conn.execute(
-            """
+            f"""
             SELECT a.*
             FROM albums a
             JOIN album_tags at ON at.jm_id = a.jm_id
             JOIN tags t ON t.id = at.tag_id
             WHERE t.name = ?
-            ORDER BY a.updated_at DESC, a.jm_id DESC
+            {ALBUM_ORDER_SQL}
             """,
             (tag,),
         ).fetchall()
@@ -225,7 +246,7 @@ class ShelfDatabase:
             JOIN album_tags at ON at.jm_id = a.jm_id
             JOIN tags t ON t.id = at.tag_id
             WHERE t.name IN ({placeholders})
-            ORDER BY a.updated_at DESC, a.jm_id DESC
+            {ALBUM_ORDER_SQL}
             """,
             normalized_tags,
         ).fetchall()

@@ -1,5 +1,40 @@
 ﻿# Development Log
 
+## 2026-06-20 05:50:45 +08:00
+
+### 修改范围
+
+- 修复从禁漫预览页切回本地书库后，作者分组顺序和作品数量偶发不稳定的问题。
+- 增加书库排序与后台索引重建的回归测试。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/database.py`
+- `src/jmcomic_shelf/index_service.py`
+- `tests/test_jmcomic/test_shelf_database.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 排查确认根因：本地书库切回时会先轻量读取 SQLite，同时后台重建下载目录索引；旧实现按 `updated_at DESC` 展示作品，而重建索引会逐条 upsert 并刷新 `updated_at`，导致 UI 在不同刷新时机下看到的作者分组顺序可能变化。
+- 旧实现重建索引时逐条提交记录，后台同步过程中 UI 可能先读到尚未完全同步后的 SQLite 状态，从而出现刷新几次后数量才稳定的观感。
+- 将书库查询排序从 `updated_at DESC` 改为稳定的“第一作者名 + 数字 JM ID 倒序 + JM ID”顺序，普通查询、单标签筛选和多标签筛选保持一致。
+- 为 `ShelfDatabase` 增加 `upsert_albums()` 批量写入接口，重建下载目录索引时使用单次事务提交整批记录，减少 UI 读到半更新状态的窗口。
+- 下载目录扫描结果在写入 SQLite 前也按相同规则稳定排序，避免文件系统遍历顺序影响索引写入顺序。
+- 新增回归测试，覆盖排序不受 `updated_at` 影响，以及 `rebuild_index_from_download_dir()` 使用批量写入。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次是既有“切回书库轻量读取、后台扫描完成后刷新”设计的稳定性修复，不新增用户入口、不改变目录规则，暂不需要同步正文。
+- 本次为日常 bug 修复，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已先运行新增排序回归测试并确认失败，失败原因为查询仍按 `updated_at DESC` 返回。
+- 已先运行新增批量写入回归测试并确认失败，失败原因为索引重建仍逐条调用 `upsert_album()`。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_database.TestShelfDatabase.test_query_albums_order_is_stable_after_reindex_upserts tests.test_jmcomic.test_shelf_index_service.TestShelfIndexService.test_rebuild_index_from_download_dir_writes_records_in_one_batch -v`，2 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，53 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，通过。
+
 ## Version 0.2.1 - 2026-06-20 04:30:00 +08:00
 
 ### 修改范围

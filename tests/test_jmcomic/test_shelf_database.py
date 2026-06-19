@@ -84,6 +84,28 @@ class TestShelfDatabase(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_query_albums_order_is_stable_after_reindex_upserts(self):
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.models import AlbumRecord
+
+        with TemporaryDirectory() as tmp:
+            db = ShelfDatabase(os.path.join(tmp, 'shelf.db'))
+            db.open()
+            try:
+                db.upsert_album(AlbumRecord('100', 'B', authors=['B作者'], tags=['tag']))
+                db.upsert_album(AlbumRecord('200', 'A', authors=['A作者'], tags=['tag']))
+                db.conn.execute("UPDATE albums SET updated_at = '2030-01-01 00:00:00' WHERE jm_id = '100'")
+                db.conn.execute("UPDATE albums SET updated_at = '2020-01-01 00:00:00' WHERE jm_id = '200'")
+                db.conn.commit()
+
+                first_order = [x.jm_id for x in db.query_albums('')]
+                self.assertEqual(first_order, ['200', '100'])
+                self.assertEqual([x.jm_id for x in db.query_albums('')], first_order)
+                self.assertEqual([x.jm_id for x in db.query_albums_by_tag('tag')], first_order)
+                self.assertEqual([x.jm_id for x in db.query_albums_by_tags(['tag'])], first_order)
+            finally:
+                db.close()
+
     def test_delete_albums_removes_selected_records(self):
         from jmcomic_shelf.database import ShelfDatabase
         from jmcomic_shelf.models import AlbumRecord

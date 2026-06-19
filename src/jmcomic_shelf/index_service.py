@@ -47,8 +47,7 @@ def rebuild_index_from_download_dir(download_dir: str, db_path: str, cover_cache
     db = ShelfDatabase(db_path)
     db.open()
     try:
-        for record in records:
-            db.upsert_album(record)
+        db.upsert_albums(records)
     finally:
         db.close()
     return len(records)
@@ -110,7 +109,7 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
     for jm_id, record in by_id.items():
         _merge_catalog_record(record, catalog_by_id.get(jm_id))
 
-    return list(by_id.values())
+    return sorted(by_id.values(), key=_record_sort_key)
 
 
 def _catalog_records_by_id(download_dir: str) -> dict[str, dict]:
@@ -229,3 +228,14 @@ def _first_author(authors: Iterable[str]) -> str:
 def _first_author_list(authors: Iterable[str]) -> list[str]:
     author = _first_author(authors)
     return [author] if author else []
+
+
+def _record_sort_key(record: AlbumRecord):
+    return (_first_author(record.authors), -_numeric_jm_id(record.jm_id), record.jm_id)
+
+
+def _numeric_jm_id(jm_id: str) -> int:
+    try:
+        return int(str(jm_id))
+    except ValueError:
+        return 0
