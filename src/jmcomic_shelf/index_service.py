@@ -8,6 +8,7 @@ from jmcomic.jm_plugin import CatalogPlugin
 from .cover_cache import CoverCache
 from .database import ShelfDatabase
 from .models import AlbumRecord
+from .path_utils import path_exists, path_for_open, walk_paths
 
 
 ALBUM_DIR_RE = re.compile(r'^JM(?P<id>\d+)-(?P<title>.+)$', re.IGNORECASE)
@@ -56,7 +57,7 @@ def rebuild_index_from_download_dir(download_dir: str, db_path: str, cover_cache
 def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[AlbumRecord]:
     by_id: OrderedDict[str, AlbumRecord] = OrderedDict()
     catalog_by_id = _catalog_records_by_id(download_dir)
-    for root, dirs, files in os.walk(download_dir):
+    for root, dirs, files in walk_paths(download_dir):
         dirs[:] = [name for name in dirs if name not in {'.git', '__pycache__'}]
         author = _author_from_album_root(download_dir, root)
         album_match = ALBUM_DIR_RE.match(os.path.basename(root).strip())
@@ -84,6 +85,9 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
             if not pdf_match:
                 continue
             jm_id = pdf_match.group('id')
+            pdf_path = os.path.join(root, filename)
+            if not path_exists(pdf_path):
+                continue
             record = by_id.setdefault(
                 jm_id,
                 AlbumRecord(
@@ -92,7 +96,7 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
                     authors=[author] if author else [],
                 ),
             )
-            record.pdf_path = os.path.join(root, filename)
+            record.pdf_path = pdf_path
             if not record.title:
                 record.title = pdf_match.group('title').strip()
 
@@ -147,9 +151,9 @@ def _author_from_album_root(download_dir: str, root: str) -> str:
 
 def _chapters_from_album_dir(album_dir: str) -> list[dict[str, str]]:
     chapters = []
-    for name in sorted(os.listdir(album_dir)):
+    for name in sorted(os.listdir(path_for_open(album_dir))):
         path = os.path.join(album_dir, name)
-        if os.path.isdir(path):
+        if os.path.isdir(path_for_open(path)):
             chapters.append({'id': '', 'index': _chapter_index(name), 'title': name})
     return chapters
 

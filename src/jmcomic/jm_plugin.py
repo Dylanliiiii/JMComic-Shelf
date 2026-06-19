@@ -107,6 +107,17 @@ class JmOptionPlugin:
     def wait_until_finish(self):
         pass
 
+    @classmethod
+    def path_for_open(cls, filepath: str) -> str:
+        if os.name != 'nt':
+            return filepath
+        normalized = os.path.abspath(os.path.normpath(filepath))
+        if normalized.startswith('\\\\?\\'):
+            return normalized
+        if normalized.startswith('\\\\'):
+            return '\\\\?\\UNC\\' + normalized[2:]
+        return '\\\\?\\' + normalized
+
     # noinspection PyMethodMayBeStatic
     def decide_filepath(self,
                         album: Optional[JmAlbumDetail],
@@ -135,7 +146,7 @@ class JmOptionPlugin:
             base_dir = base_dir or os.getcwd()
             filepath = os.path.join(base_dir, DirRule.apply_rule_to_filename(album, photo, filename_rule) + fix_suffix(suffix))
 
-        mkdir_if_not_exists(base_dir)
+        mkdir_if_not_exists(self.path_for_open(base_dir))
         return fix_filepath(filepath)
 
 
@@ -822,7 +833,7 @@ class Img2pdfPlugin(JmOptionPlugin):
             self.log(f'所有文件夹都不存在图片，无法生成pdf：{img_dir_ls}', 'error')
             return
 
-        with open(pdf_filepath, 'wb') as f:
+        with open(self.path_for_open(pdf_filepath), 'wb') as f:
             f.write(img2pdf.convert(img_path_ls))
 
         if encrypt:

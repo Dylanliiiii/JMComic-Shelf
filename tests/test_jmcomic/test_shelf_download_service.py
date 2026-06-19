@@ -79,6 +79,53 @@ class TestShelfDownloadService(unittest.TestCase):
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0].pdf_path, pdf_path)
 
+    def test_run_task_fails_when_pdf_plugin_did_not_create_pdf(self):
+        from jmcomic_shelf.download_service import DownloadService, DownloadTask
+
+        with TemporaryDirectory() as tmp:
+            option_path = os.path.join(tmp, 'jmcomic-option.yml')
+            with open(option_path, 'w', encoding='utf-8') as f:
+                f.write('version: "2.1"\n')
+
+            def fake_download_album(jm_id, option):
+                return FakeDownloadedAlbum(), object()
+
+            task = DownloadTask(jm_id='211899')
+            service = DownloadService(
+                option_path,
+                app_data_dir=tmp,
+                download_dir=tmp,
+                option_factory=lambda path: object(),
+                download_func=fake_download_album,
+            )
+
+            service.run_task(task)
+
+            self.assertEqual(task.status, 'failed')
+            self.assertIn('PDF', task.error)
+
+    def test_find_pdf_path_finds_long_path_pdf(self):
+        from jmcomic_shelf.download_service import DownloadService
+        from jmcomic_shelf.path_utils import path_for_open
+
+        with TemporaryDirectory() as tmp:
+            title = 'long-title-' * 18
+            album_dir = os.path.join(tmp, 'author', 'JM211899-' + title)
+            os.makedirs(path_for_open(album_dir))
+            pdf_path = os.path.join(album_dir, 'JM211899-' + title + '.pdf')
+            with open(path_for_open(pdf_path), 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            try:
+                service = DownloadService('', download_dir=tmp)
+
+                self.assertEqual(service.find_pdf_path('211899', title), pdf_path)
+            finally:
+                if os.path.exists(path_for_open(pdf_path)):
+                    os.remove(path_for_open(pdf_path))
+                if os.path.isdir(path_for_open(album_dir)):
+                    os.rmdir(path_for_open(album_dir))
+
     def test_download_page_clears_input_after_starting_tasks(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 

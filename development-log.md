@@ -1,5 +1,49 @@
 ﻿# Development Log
 
+## 2026-06-20 01:11:56 +08:00
+
+### 修改范围
+
+- 补齐本地下载目录中缺失的合并 PDF。
+- 修复 Windows 长路径导致 `img2pdf` 生成、书库扫描和打开 PDF 误判失败的问题。
+- 修复桌面端下载任务在 PDF 未生成时仍显示成功的问题。
+
+### 涉及文件
+
+- `src/jmcomic/jm_plugin.py`
+- `src/jmcomic_shelf/path_utils.py`
+- `src/jmcomic_shelf/download_service.py`
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/file_actions.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_jm_plugin.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `tests/test_jmcomic/test_shelf_file_actions.py`
+- `tests/test_jmcomic/test_shelf_path_utils.py`
+- `development-log.md`
+
+### 具体内容
+
+- 扫描当前下载目录后确认共有 90 个带图片的作品目录，其中 29 个缺失对应合并 PDF；使用项目当前 `img2pdf` 方案和 `JM{Aid}-{Atitle}.pdf` 命名规则补齐全部 29 个 PDF。
+- 首轮补齐 27 个 PDF，剩余 2 个因 Windows 总路径超过普通 API 限制而写入失败；使用 Windows 长路径前缀补齐后，90 个 PDF 文件头均可读到 `%PDF-`。
+- 新增 `jmcomic_shelf.path_utils`，统一处理 Windows `\\?\` 长路径、长路径存在性判断和长路径递归扫描。
+- `Img2pdfPlugin` 写入 PDF 和创建输出目录时使用长路径兼容路径，避免长标题作品在插件阶段失败。
+- 下载服务在任务完成后必须找到生成的 PDF 才标记成功；若插件未产出 PDF，会把任务标记为失败并提示缺少 PDF。
+- 下载服务、书库索引和封面卡片右键菜单改用长路径兼容判断，避免超长路径 PDF 已存在但 UI 误判为缺失。
+- 已重建桌面端 SQLite 索引，确认当前书库 90 条记录均关联到可访问 PDF。
+- 开工前读取本地 `AGENTS.md` 和项目专属 Skill 时，PowerShell 输出仍呈现 mojibake；本次继续以用户消息中提供的正常中文规则为准，并未扩大为协作文件编码修复。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次修复的是既有“下载后生成 PDF / 书库打开 PDF”规则的实现缺陷，不新增用户入口、不改变推荐目录规则，无需同步正文。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，40 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_jm_plugin.Test_CatalogPlugin tests.test_jmcomic.test_jm_plugin.Test_ShelfIndexPlugin tests.test_jmcomic.test_jm_plugin.TestPluginPathUtils -v`，7 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile src\jmcomic\jm_plugin.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\file_actions.py src\jmcomic_shelf\path_utils.py src\jmcomic_shelf\ui\library_page.py`，通过。
+- 已用长路径兼容检查确认当前下载目录中 90 个带图作品目录均有 PDF，缺失数为 0。
+- 已重建桌面端 SQLite 索引并查询确认 90 条记录均有关联 PDF，缺失数为 0。
+- 首次直接运行 `py_compile` 时因仓库 `__pycache__` 写入权限/占用报 `Permission denied`，已改用临时 `PYTHONPYCACHEPREFIX` 后通过。
+
 ## 2026-06-18 12:58:10 +08:00
 
 ### 修改范围

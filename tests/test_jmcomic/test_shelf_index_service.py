@@ -102,3 +102,38 @@ class TestShelfIndexService(unittest.TestCase):
 
             self.assertEqual(records[0].tags, ['后宫', '巨乳'])
             self.assertEqual(tags, ['后宫', '巨乳'])
+
+    def test_rebuild_index_from_download_dir_finds_long_path_pdf(self):
+        from tempfile import TemporaryDirectory
+
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.index_service import rebuild_index_from_download_dir
+        from jmcomic_shelf.path_utils import path_for_open
+
+        with TemporaryDirectory() as tmp:
+            title = 'long-title-' * 18
+            author_dir = os.path.join(tmp, 'author')
+            album_dir = os.path.join(author_dir, 'JM211899-' + title)
+            os.makedirs(path_for_open(album_dir))
+            pdf_path = os.path.join(album_dir, 'JM211899-' + title + '.pdf')
+            with open(path_for_open(pdf_path), 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            try:
+                db_path = os.path.join(tmp, 'app', 'shelf.db')
+                count = rebuild_index_from_download_dir(tmp, db_path)
+
+                db = ShelfDatabase(db_path)
+                db.open()
+                try:
+                    records = db.query_albums('211899')
+                finally:
+                    db.close()
+
+                self.assertEqual(count, 1)
+                self.assertEqual(records[0].pdf_path, pdf_path)
+            finally:
+                if os.path.exists(path_for_open(pdf_path)):
+                    os.remove(path_for_open(pdf_path))
+                if os.path.isdir(path_for_open(album_dir)):
+                    os.rmdir(path_for_open(album_dir))

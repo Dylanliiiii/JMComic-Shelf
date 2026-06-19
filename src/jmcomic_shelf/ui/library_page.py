@@ -9,6 +9,7 @@ from jmcomic_shelf.database import ShelfDatabase
 from jmcomic_shelf.delete_service import delete_album_files
 from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
 from jmcomic_shelf.index_service import group_by_author, rebuild_index_from_download_dir
+from jmcomic_shelf.path_utils import path_exists
 from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_settings_path
 from jmcomic_shelf.settings import ShelfSettings
 
@@ -120,7 +121,7 @@ class CoverCard(CardWidget):
         reveal_action = QAction('在文件资源管理器中显示位置', self)
         open_action.triggered.connect(lambda: open_pdf(self.record.pdf_path))
         reveal_action.triggered.connect(lambda: reveal_in_explorer(self.record.pdf_path))
-        exists = bool(self.record.pdf_path and os.path.exists(self.record.pdf_path))
+        exists = bool(self.record.pdf_path and path_exists(self.record.pdf_path))
         open_action.setEnabled(exists)
         reveal_action.setEnabled(exists)
         menu.addAction(open_action)

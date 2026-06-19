@@ -231,6 +231,19 @@ class Test_ShelfIndexPlugin(unittest.TestCase):
             self.assertEqual(result[0].authors, ['作者A'])
 
 
+class TestPluginPathUtils(unittest.TestCase):
+
+    def test_plugin_path_for_open_adds_windows_long_path_prefix(self):
+        from unittest.mock import patch
+
+        from jmcomic.jm_plugin import JmOptionPlugin
+
+        with patch('jmcomic.jm_plugin.os.name', 'nt'):
+            path = JmOptionPlugin.path_for_open('D:/very/long/path.pdf')
+
+        self.assertEqual(path, r'\\?\D:\very\long\path.pdf')
+
+
 class Test_Plugin(JmTestConfigurable):
 
     def test_plugin_missing_album_context(self):

@@ -5,6 +5,7 @@ from typing import List
 
 from .database import ShelfDatabase
 from .index_service import record_from_album
+from .path_utils import path_exists, walk_paths
 from .paths import get_database_path
 
 
@@ -72,19 +73,22 @@ class DownloadService:
             option = option_factory(self.option_path)
             result = download_func(task.jm_id, option)
             album = result[0] if isinstance(result, tuple) else result
-            self.index_album(album)
+            pdf_path = self.find_pdf_path(str(album.album_id), album.name)
+            if not pdf_path:
+                raise FileNotFoundError(f'下载完成，但未找到生成的 PDF：JM{album.album_id}')
+            self.index_album(album, pdf_path)
             task.mark_success()
         except Exception as e:
             task.mark_failed(e)
         return task
 
-    def index_album(self, album) -> None:
+    def index_album(self, album, pdf_path: str | None = None) -> None:
         db = ShelfDatabase(get_database_path(self.app_data_dir))
         db.open()
         try:
             db.upsert_album(record_from_album(
                 album,
-                pdf_path=self.find_pdf_path(str(album.album_id), album.name),
+                pdf_path=pdf_path if pdf_path is not None else self.find_pdf_path(str(album.album_id), album.name),
             ))
         finally:
             db.close()
@@ -95,8 +99,10 @@ class DownloadService:
 
         exact_names = [f'JM{jm_id}-{title}.pdf'] if title else []
         exact_names.append(f'JM{jm_id}.pdf')
-        for root, _, files in os.walk(self.download_dir):
+        for root, _, files in walk_paths(self.download_dir):
             for name in files:
                 if name in exact_names or (name.startswith(f'JM{jm_id}-') and name.lower().endswith('.pdf')):
-                    return os.path.join(root, name)
+                    pdf_path = os.path.join(root, name)
+                    if path_exists(pdf_path):
+                        return pdf_path
         return ''
