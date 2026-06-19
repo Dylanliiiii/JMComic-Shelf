@@ -4,7 +4,7 @@ with open("README.md", encoding='utf-8') as f:
     long_description = f.read()
 
 version = None
-with open('./src/jmcomic/__init__.py', encoding='utf-8') as f:
+with open('./src/jmcomic_shelf/__init__.py', encoding='utf-8') as f:
     for line in f:
         if '__version__' in line:
             version = line[line.index("'") + 1: line.rindex("'")]
@@ -15,14 +15,13 @@ if version is None:
     exit(1)
 
 setup(
-    name='jmcomic',
+    name='JMComic-Shelf',
     version=version,
-    description='Python API For JMComic (禁漫天堂)',
+    description='Windows desktop shelf for JMComic downloads',
     long_description_content_type="text/markdown",
     long_description=long_description,
-    url='https://github.com/hect0x7/JMComic-Crawler-Python',
-    author='hect0x7',
-    author_email='93357912+hect0x7@users.noreply.github.com',
+    url='https://github.com/Dylanliiiii/JMComic-Shelf',
+    author='Dylanliiiii',
     packages=find_packages("src"),
     package_dir={"": "src"},
     package_data={

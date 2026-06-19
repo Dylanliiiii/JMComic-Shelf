@@ -1,5 +1,40 @@
 ﻿# Development Log
 
+## Version 0.2.1 - 2026-06-20 04:30:00 +08:00
+
+### 修改范围
+
+- 修复 PyAppify 自动更新后仍运行旧代码的问题。
+- 增加包装版本来源测试。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `pyproject.toml`
+- `setup.py`
+- `tests/test_jmcomic/test_shelf_packaging.py`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 根据用户复现结果，确认“全新安装最新版本正常，应用内自动更新后仍缺少新预览功能和封面显示”，问题方向不是封面扫描本身，而是自动更新后安装包没有正确更新到最新应用代码。
+- 排查发现当前源码能够从下载根目录 `Cover/` 扫到 90 张封面，应用数据目录也已有 90 张 `covers/JM号.jpg` 缩略图；封面缺失现象更符合自动更新后仍运行旧包的表现。
+- 修复 `pyproject.toml` 的项目元数据：分发包名从上游 `jmcomic` 改为桌面端 `JMComic-Shelf`，动态版本来源从上游核心库 `jmcomic.__version__` 改为桌面端 `jmcomic_shelf.__version__`，并将主页指向当前仓库。
+- 修复 `setup.py` 的项目元数据：分发包名从上游 `jmcomic` 改为桌面端 `JMComic-Shelf`，版本读取来源从 `src/jmcomic/__init__.py` 改为 `src/jmcomic_shelf/__init__.py`。
+- 将桌面端版本号更新为 `0.2.1`，用于发布修复版，让 PyAppify 自动更新链路能识别 Python 包版本变化，避免继续复用旧的 `jmcomic==2.7.0` 包元数据。
+- 新增 `tests/test_jmcomic/test_shelf_packaging.py`，防止后续再次把桌面端发布版本或分发包名误绑定到上游核心库。
+- 本次未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+
+### 验证情况
+
+- 已先运行新增包装测试并确认失败，失败原因分别为 `pyproject.toml` 使用 `jmcomic.__version__`、`setup.py` 读取 `src/jmcomic/__init__.py`。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_packaging -v`，3 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，51 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，通过。
+- 已运行 `$env:PYTHONPATH='src'; python -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.2.1`。
+- 尝试运行 `python setup.py --version` 时，当前系统 Python `C:\Python314\python.exe` 缺少 `setuptools`，无法用该命令验证；已用测试直接校验 `setup.py` 和 `pyproject.toml` 的版本来源。
+
 ## Version 0.2.0 - 2026-06-20 03:55:00 +08:00
 
 ### 修改范围

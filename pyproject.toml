@@ -2,9 +2,9 @@
 requires = ["setuptools"]
 
 [project]
-name = "jmcomic"
-authors = [{name = "hect0x7", email = "93357912+hect0x7@users.noreply.github.com"}]
-description = "Python API For JMComic (禁漫天堂)"
+name = "JMComic-Shelf"
+authors = [{name = "Dylanliiiii"}]
+description = "Windows desktop shelf for JMComic downloads"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
@@ -36,8 +36,8 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/hect0x7/JMComic-Crawler-Python"
-Documentation = "https://jmcomic.readthedocs.io"
+Homepage = "https://github.com/Dylanliiiii/JMComic-Shelf"
+Upstream = "https://github.com/hect0x7/JMComic-Crawler-Python"
 
 [project.scripts]
 jmcomic = "jmcomic.cli:main"
@@ -45,7 +45,7 @@ jmv = "jmcomic.cli:view_main"
 jmcomic-shelf = "jmcomic_shelf.app:main"
 
 [tool.setuptools.dynamic]
-version = {attr = "jmcomic.__version__"}
+version = {attr = "jmcomic_shelf.__version__"}
 
 [tool.setuptools.package-data]
 jmcomic_shelf = ["assets/icon.png"]
