@@ -31,4 +31,5 @@ class TestShelfPackaging(unittest.TestCase):
 
         self.assertIn("name='JMComic-Shelf'", setup_py)
         self.assertIn('./src/jmcomic_shelf/__init__.py', setup_py)
+        self.assertIn("line.startswith('__version__')", setup_py)
         self.assertNotIn("./src/jmcomic/__init__.py", setup_py)

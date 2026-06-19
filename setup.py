@@ -6,7 +6,8 @@ with open("README.md", encoding='utf-8') as f:
 version = None
 with open('./src/jmcomic_shelf/__init__.py', encoding='utf-8') as f:
     for line in f:
-        if '__version__' in line:
+        line = line.strip()
+        if line.startswith('__version__'):
             version = line[line.index("'") + 1: line.rindex("'")]
             break
 
