@@ -119,6 +119,36 @@ class TestShelfDownloadService(unittest.TestCase):
             self.assertFalse(os.path.exists(original_pdf))
             self.assertFalse(os.path.exists(album_dir))
 
+    def test_run_task_accepts_default_feature_pdf_name(self):
+        from jmcomic_shelf.download_service import DownloadService, DownloadTask
+
+        with TemporaryDirectory() as tmp:
+            option_path = os.path.join(tmp, 'jmcomic-option.yml')
+            with open(option_path, 'w', encoding='utf-8') as f:
+                f.write('version: "2.1"\n')
+            original_pdf = os.path.join(tmp, '[JM211899]作品A.pdf')
+            with open(original_pdf, 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            def fake_download_album(jm_id, option):
+                return FakeDownloadedAlbum(), object()
+
+            task = DownloadTask(jm_id='211899')
+            service = DownloadService(
+                option_path,
+                app_data_dir=os.path.join(tmp, 'app'),
+                download_dir=tmp,
+                option_factory=lambda path: object(),
+                download_func=fake_download_album,
+            )
+
+            service.run_task(task)
+
+            final_pdf = os.path.join(tmp, '作者A', 'JM211899-作品A.pdf')
+            self.assertEqual(task.status, 'success')
+            self.assertTrue(os.path.exists(final_pdf))
+            self.assertFalse(os.path.exists(original_pdf))
+
     def test_run_task_fails_when_pdf_plugin_did_not_create_pdf(self):
         from jmcomic_shelf.download_service import DownloadService, DownloadTask
 

@@ -165,14 +165,23 @@ class DownloadService:
         shutil.rmtree(path_for_open(album_dir))
 
     def find_pdf_path(self, jm_id: str, title: str = '') -> str:
-        if not self.download_dir or not os.path.isdir(self.download_dir):
+        if not self.download_dir or not os.path.isdir(path_for_open(self.download_dir)):
             return ''
 
-        exact_names = [f'JM{jm_id}-{title}.pdf'] if title else []
-        exact_names.append(f'JM{jm_id}.pdf')
+        prefixes = (f'JM{jm_id}-', f'[JM{jm_id}]')
+        exact_names = {f'JM{jm_id}.pdf', f'{jm_id}.pdf'}
+        if title:
+            exact_names.update({
+                f'JM{jm_id}-{title}.pdf',
+                f'[JM{jm_id}]{title}.pdf',
+                f'{jm_id}-{title}.pdf',
+                f'{jm_id}{title}.pdf',
+            })
         for root, _, files in walk_paths(self.download_dir):
             for name in files:
-                if name in exact_names or (name.startswith(f'JM{jm_id}-') and name.lower().endswith('.pdf')):
+                if not name.lower().endswith('.pdf'):
+                    continue
+                if name in exact_names or name.startswith(prefixes):
                     pdf_path = os.path.join(root, name)
                     if path_exists(pdf_path):
                         return pdf_path

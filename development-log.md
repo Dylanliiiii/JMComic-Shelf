@@ -1,5 +1,40 @@
 ﻿# Development Log
 
+## Version 0.2.3 - 2026-06-21 03:13:15 +08:00
+
+### 修改范围
+
+- 修复桌面端下载完成后误报“未找到生成的 PDF”的问题。
+- 将桌面端项目版本号从 `0.2.2` 更新为 `0.2.3`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `src/jmcomic_shelf/download_service.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新 Release 基线为 `v0.2.2`。
+- 根据用户截图排查下载页任务全部失败的原因：上游 `Feature.export_pdf` 在 album 级默认会生成 `[JM{Aid}]{Atitle}.pdf`，而桌面端下载服务原先只识别 `JM{Aid}-{Atitle}.pdf`、`JM{Aid}.pdf` 和 `JM{Aid}-*.pdf`，导致 PDF 已生成但被判定为缺失。
+- 扩展 `DownloadService.find_pdf_path()` 的 PDF 识别规则，兼容 `[JM号]标题.pdf`、`JM号-标题.pdf`、`JM号.pdf`、`号.pdf` 以及带 `JM号-` 前缀的已有归档命名，同时继续通过 `path_for_open()` 支持 Windows 长路径。
+- 新增回归测试 `test_run_task_accepts_default_feature_pdf_name`，覆盖上游默认 `[JM号]标题.pdf` 命名能够被桌面端识别、移动到第一作者目录，并最终归档为 `JM号-作品名.pdf`。
+- 本次属于下载后 PDF 识别修复，不新增用户入口、不改变目录结构和 UI 规则，因此 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/` 暂不需要同步正文。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.2.3`，用于 PyAppify 自动更新链路识别新包版本。未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+
+### 验证情况
+
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_download_service.TestShelfDownloadService.test_run_task_accepts_default_feature_pdf_name -v`，确认新增回归测试失败，失败原因为任务状态仍为 `failed`。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_download_service -v`，11 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，54 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_packaging -v`，3 项通过。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+- 已确认 `pyappify.yml`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+
 ## Version 0.2.2 - 2026-06-20 10:12:08 +08:00
 
 ### 修改范围
