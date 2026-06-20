@@ -1,5 +1,32 @@
 ﻿# Development Log
 
+## Version 0.2.2 - 2026-06-20 10:12:08 +08:00
+
+### 修改范围
+
+- 发布本地书库索引稳定性修复版。
+- 将桌面端项目版本号从 `0.2.1` 更新为 `0.2.2`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `development-log.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新 Release 基线为 `v0.2.1`。
+- 本次发布包含上一条日常开发记录中的 bug 修复：稳定本地书库作者分组与作品排序，并让下载目录索引重建使用单次批量事务写入，减少从禁漫预览页切回书库时读到半更新状态的窗口。
+- 本次属于修复版和小型稳定性改进，因此按语义化版本从 `v0.2.1` 升级到 `v0.2.2`。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.2.2`，用于 PyAppify 自动更新链路识别新包版本。未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次是既有书库索引稳定性修复的正式发布，不新增用户入口、不改变目录规则，暂不需要同步正文。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_packaging -v`，3 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，53 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，通过。
+- 已确认 `pyappify.yml`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+
 ## 2026-06-20 05:50:45 +08:00
 
 ### 修改范围
