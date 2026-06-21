@@ -104,6 +104,7 @@ dir_rule:
 - PDF 最终保存为 `下载根目录 / 第一作者 / JM号-作品名.pdf`。
 - 作品图片目录只作为下载和转 PDF 的中间产物，封面提取和 PDF 归档完成后不再保留。
 - 下载根目录下使用 `Cover/` 缓存每本作品第一面图片，供书库封面读取。
+- 书库修复页用于处理历史残留的 `作者 / JM{Aid}-{Atitle} / 第{Pindex}章 / 图片` 目录：只有 PDF 生成成功后才删除原图片目录；失败时必须保留图片目录，避免删除唯一可恢复数据。
 
 ### Markdown 总目录
 
@@ -129,6 +130,7 @@ dir_rule:
 - 扫描规则至少支持 `作者 / JM{Aid}-{Atitle}.pdf`、根目录 `Cover/JM{Aid}-{Atitle}.jpg`、旧版 `作者 / JM{Aid}-{Atitle} / 第{Pindex}章 / 图片`，以及下载根目录或子目录中的 `JM{Aid}-{Atitle}.pdf`。
 - SQLite 中的标签与 `catalog.md` 一致，统一保存为中文简体；本地书库页的“分类”按钮应列出当前书库出现过的全部标签，标签面板最多展示五行并支持滚动；可同时选择多个标签，满足任一选中标签的作品都会显示。
 - 重建索引应以当前下载目录实际扫描结果替换 SQLite 中的书目集合，并同步裁剪 `catalog.md` 中已经没有本地文件的条目。
+- 书库修复完成后应复用重建索引逻辑，同步 SQLite、下载目录实际文件和 `catalog.md` 条目，避免重复实现一套目录裁剪规则。
 
 ### Windows 脚本
 
@@ -145,6 +147,7 @@ UI 必须遵守以下方向：
 - 整体是工具型 Windows 桌面应用，不是网页后台、营销页或 HTML 风格页面。
 - 风格参考 Windows 11 Settings / WinUI 3 / QFluentWidgets 深色 Fluent 应用。
 - 左侧使用 QFluentWidgets 的 `FluentWindow` / 导航接口，导航项包含图标和中文文字。
+- 新增导航页时必须使用 `FluentWindow.addSubInterface()` 和 QFluentWidgets 内置图标，保持与现有导航项一致；不要手写另一套侧栏样式。
 - 右侧主区域使用透明背景、低对比度表面和 QFluentWidgets 原生控件。
 - 页面和卡片优先使用 `TitleLabel`、`SubtitleLabel`、`CaptionLabel`、`CardWidget`、`SmoothScrollArea`、`PrimaryPushButton`、`PushButton` 等 QFluentWidgets 控件。
 - 使用青色作为强调色，当前建议 `#00c8d7`。

@@ -1,5 +1,51 @@
 ﻿# Development Log
 
+## 2026-06-21 21:38:48 +08:00
+
+### 修改范围
+
+- 新增桌面端“书库修复”功能页。
+- 新增书库修复服务，用于补全历史残留图片目录缺失的 PDF。
+- 同步 README、AGENTS、项目专属 Skill、桌面端 spec 和 plan。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/repair_service.py`
+- `src/jmcomic_shelf/ui/repair_page.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `tests/test_jmcomic/test_shelf_repair_service.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `README.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/specs/2026-06-21-library-repair-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `docs/superpowers/plans/2026-06-21-library-repair.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 在左侧导航新增“书库修复”页，位置在“禁漫预览”和底部“设置”之间，使用 QFluentWidgets `addSubInterface()` 和内置 `FluentIcon.SYNC`，保持与既有导航项一致。
+- 新增 `RepairPage`，页面使用 `TitleLabel`、`CaptionLabel`、`CardWidget`、`SmoothScrollArea` 和放大的 `PrimaryPushButton`；按钮颜色继续跟随统一青色强调色 `#00c8d7`。
+- 新增 `repair_library()`：扫描当前下载目录中 `作者 / JM{Aid}-{Atitle} / 第{Pindex}章 / 图片` 形式的残留作品目录；缺失 PDF 时用本地图片补全 `作者 / JM号-作品名.pdf`。
+- PDF 成功生成并落盘后，会复制第一张图片到根目录 `Cover/` 并删除原作品图片目录；如果最终 PDF 已存在，也会清理同名残留图片目录；生成失败时记录失败并保留原图片目录，避免删除唯一可恢复数据。
+- 修复流程结束后复用 `rebuild_index_from_download_dir()`，继续由既有逻辑同步 SQLite 和 `catalog.md`，不重复实现目录裁剪规则。
+- 新增书库修复设计文档和实施计划，记录功能边界、UI 样式约束、测试范围和文档同步要求。
+- 已同步检查并更新 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次新增用户可见入口和本地修复工作流，因此需要同步正文。
+- 本次为日常功能更新，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_repair_service -v`，确认新增服务测试失败，失败原因为 `jmcomic_shelf.repair_service` 尚不存在。
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_library_page.TestShelfLibraryPage.test_main_window_adds_library_repair_page_before_settings tests.test_jmcomic.test_shelf_library_page.TestShelfLibraryPage.test_repair_page_primary_button_uses_large_fluent_primary_button -v`，确认新增 UI 测试失败，失败原因为主窗口尚无 `repair_page` 且 `ui.repair_page` 尚不存在。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_repair_service -v`，3 项通过。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_library_page.TestShelfLibraryPage.test_main_window_adds_library_repair_page_before_settings tests.test_jmcomic.test_shelf_library_page.TestShelfLibraryPage.test_repair_page_primary_button_uses_large_fluent_primary_button -v`，2 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_repair_service tests.test_jmcomic.test_shelf_library_page -v`，15 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，67 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\repair_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\delete_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\repair_page.py`，通过。
+
 ## 2026-06-21 20:59:12 +08:00
 
 ### 修改范围

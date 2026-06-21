@@ -68,6 +68,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - `database.py`：SQLite 书库索引。
 - `index_service.py`：JM album 元数据和下载目录扫描到 SQLite 的同步逻辑。
 - `download_service.py`：桌面端下载任务、下载后 PDF 归档、根目录 `Cover/` 封面缓存和索引更新。
+- `repair_service.py`：书库修复流程，扫描历史残留图片目录，补全缺失 PDF，成功后清理原图片目录，并复用重建索引同步 SQLite 和 `catalog.md`。
 - `detail_service.py`：单个 JM 号详情查询，并为预览页缓存线上封面图。
 - `cover_cache.py`：完整封面缩略图缓存，不裁剪。
 - `ui/`：PySide6 + QFluentWidgets 页面。
@@ -75,6 +76,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有 PDF、根目录 `Cover/` 封面缓存和旧版漫画图片目录，再显示结果。
 SQLite 标签应与 `catalog.md` 一致统一保存为中文简体；书库页的“分类”按钮应展开当前书库出现过的全部标签，标签面板最多展示五行并支持滚动；可同时选择多个标签，满足任一选中标签的漫画都会显示。
 重建索引必须用本次扫描结果替换 SQLite 中旧记录，并同步清理 `catalog.md` 中已经没有本地 PDF 或图片目录的旧条目。
+书库修复页只负责把残留图片目录补成 PDF 并清理成功项；数量、条目和 `catalog.md` 同步继续复用重建索引逻辑，不另写一套目录裁剪规则。PDF 生成失败时必须保留原图片目录。
 
 ### Windows 脚本
 
@@ -97,6 +99,7 @@ UI 必须保持：
 - 工具型桌面应用气质。
 - 深色 Fluent / Windows 11 Settings 观感。
 - 左侧 `FluentWindow` 导航，图标 + 中文文字。
+- 新增导航页必须通过 `addSubInterface()` 接入并使用 QFluentWidgets 内置图标，保持与既有导航项一致。
 - 右侧主区域透明背景，使用 QFluentWidgets 原生控件和卡片。
 - 青色强调色，当前建议 `#00c8d7`。
 - 卡片式信息分组，避免网页式大白底和黑色说明条。
@@ -137,6 +140,7 @@ rule: Bd / Aauthor / JM{Aid}-{Atitle} / 第{Pindex}章
 
 下载完成并生成 PDF 后，桌面端会把最终文件整理为 `下载根目录 / 第一作者 / JM{Aid}-{Atitle}.pdf`，并把第一面图片复制到 `下载根目录 / Cover / JM{Aid}-{Atitle}.jpg`。章节图片目录只作为中间产物，整理完成后不再保留。
 批量删除本地漫画时，只允许删除匹配 `JM{Aid}-{Atitle}` 的作品目录和对应 PDF，不应因为旧索引中的 `album_dir` 指向作者目录而删除整个作者目录。
+书库修复处理旧版残留图片目录时，也应最终整理为同一 PDF 和 `Cover/` 封面结构；只有 PDF 成功生成并落盘后才删除作品图片目录。
 
 ## README 与文档
 

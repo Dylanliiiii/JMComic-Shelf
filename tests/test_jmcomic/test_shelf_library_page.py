@@ -216,3 +216,37 @@ class TestShelfLibraryPage(unittest.TestCase):
         reload_library.assert_called_once()
         window.close()
         self.assertIsNotNone(app)
+
+    def test_main_window_adds_library_repair_page_before_settings(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.ui.main_window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        window = MainWindow()
+
+        self.assertTrue(hasattr(window, 'repair_page'))
+        self.assertEqual(window.repair_page.objectName(), 'repairPage')
+        self.assertLess(
+            window.stackedWidget.indexOf(window.repair_page),
+            window.stackedWidget.indexOf(window.settings_page),
+        )
+        window.close()
+        self.assertIsNotNone(app)
+
+    def test_repair_page_primary_button_uses_large_fluent_primary_button(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from qfluentwidgets import PrimaryPushButton
+        from jmcomic_shelf.ui.repair_page import RepairPage
+
+        app = QApplication.instance() or QApplication([])
+        page = RepairPage()
+
+        self.assertIsInstance(page.repair_button, PrimaryPushButton)
+        self.assertEqual(page.repair_button.text(), '开始修复')
+        self.assertGreaterEqual(page.repair_button.minimumWidth(), 160)
+        self.assertGreaterEqual(page.repair_button.minimumHeight(), 44)
+        self.assertIsNotNone(app)

@@ -14,7 +14,8 @@
 - `ui/theme.py`：集中处理 QFluentWidgets 主题映射和强调色。
 - `detail_service.py`：查询单个 JM 号详情，并为预览页缓存可显示的封面图。
 - `file_actions.py`：打开 PDF 和在资源管理器中定位。
-- `ui/`：本地书库、禁漫下载、禁漫预览、设置页面。
+- `repair_service.py`：扫描历史残留图片目录，补全缺失 PDF，成功后清理原图片目录，并复用重建索引同步 SQLite 和 `catalog.md`。
+- `ui/`：本地书库、禁漫下载、禁漫预览、书库修复、设置页面。
 - `pyappify.yml`：PyAppify 桌面版发布配置。
 - `.github/workflows/release.yml`：`v*` tag 触发的 GitHub Release 打包流程。
 
@@ -68,13 +69,21 @@
 - JM 号输入框按 Enter 应触发与“查看详情”按钮相同的查询逻辑。
 - 禁漫预览页在文字详情上方显示完整等比例封面图，优先复用本地封面，缺失时缓存线上封面。
 
-### 5. 文档和编码清理
+### 5. 书库修复页
+
+- 左侧导航在“禁漫预览”和底部“设置”之间新增“书库修复”，使用 `FluentWindow.addSubInterface()` 和 QFluentWidgets 内置图标，保持与现有导航项一致。
+- 页面主按钮使用放大后的 `PrimaryPushButton`，颜色跟随统一青色强调色。
+- 扫描历史残留的 `作者 / JM{Aid}-{Atitle} / 第{Pindex}章 / 图片` 目录，缺失 PDF 时用本地图片补全 `作者 / JM号-作品名.pdf`。
+- PDF 生成成功后复制封面到根目录 `Cover/` 并删除原图片目录；失败时保留原目录并显示日志。
+- 修复结束后调用重建索引，同步 SQLite 与 `catalog.md`。
+
+### 6. 文档和编码清理
 
 - 每次修改到乱码文件时，把该文件恢复为正常 UTF-8 中文。
 - 优先清理 `README.md`、`assets/readme/README-en.md` 和测试文件中的 mojibake。
 - 开发记录新增内容必须保持正常中文。
 
-### 6. 发布与仓库清理
+### 7. 发布与仓库清理
 
 - 旧的 `download-jmcomic.bat` 和 `view-jmcomic.bat` 已由桌面端入口替代，不再保留。
 - 保留 `start-jmcomic-shelf.bat` 作为源码仓库启动入口。
