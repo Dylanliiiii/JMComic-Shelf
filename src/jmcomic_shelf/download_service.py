@@ -80,7 +80,9 @@ class DownloadService:
             album = result[0] if isinstance(result, tuple) else result
             pdf_path = self.find_pdf_path(str(album.album_id), album.name)
             if not pdf_path:
-                raise FileNotFoundError(f'下载完成，但未找到生成的 PDF：JM{album.album_id}')
+                pdf_path = self.build_pdf_from_downloaded_images(album, option)
+            if not pdf_path:
+                raise FileNotFoundError(f'下载完成，但未找到可合成 PDF 的图片：JM{album.album_id}')
             pdf_path, cover_path = self.organize_downloaded_album(album, pdf_path, option)
             self.index_album(album, pdf_path, cover_path)
             task.mark_success()
@@ -99,6 +101,36 @@ class DownloadService:
             ))
         finally:
             db.close()
+
+    def build_pdf_from_downloaded_images(self, album, option=None) -> str:
+        if not self.download_dir or not os.path.isdir(path_for_open(self.download_dir)):
+            return ''
+
+        album_dir = self._find_album_dir(album, '', option)
+        images = _image_paths(album_dir)
+        if not images:
+            return ''
+
+        try:
+            import img2pdf
+        except ImportError as exc:
+            raise RuntimeError('生成 PDF 需要依赖 img2pdf，请重新安装或更新 JMComic Shelf') from exc
+
+        jm_id = str(album.album_id)
+        title = _safe_path_segment(getattr(album, 'name', '') or jm_id)
+        pdf_path = os.path.join(album_dir, f'JM{jm_id}-{title}.pdf')
+        tmp_path = pdf_path + '.tmp'
+        try:
+            with open(path_for_open(tmp_path), 'wb') as f:
+                f.write(img2pdf.convert([path_for_open(path) for path in images]))
+            if not os.path.exists(path_for_open(tmp_path)) or os.path.getsize(path_for_open(tmp_path)) <= 0:
+                raise RuntimeError(f'PDF 输出为空：JM{jm_id}')
+            os.replace(path_for_open(tmp_path), path_for_open(pdf_path))
+        except Exception:
+            if os.path.exists(path_for_open(tmp_path)):
+                os.remove(path_for_open(tmp_path))
+            raise
+        return pdf_path
 
     def organize_downloaded_album(self, album, pdf_path: str, option=None) -> tuple[str, str]:
         if not self.download_dir or not os.path.isdir(path_for_open(self.download_dir)):
@@ -204,13 +236,24 @@ def _first_author(authors: Iterable[str]) -> str:
 
 
 def _first_image(album_dir: str) -> str:
+    images = _image_paths(album_dir)
+    return images[0] if images else ''
+
+
+def _image_paths(album_dir: str) -> list[str]:
     if not album_dir or not os.path.isdir(path_for_open(album_dir)):
-        return ''
-    for root, _, files in os.walk(path_for_open(album_dir)):
-        for filename in sorted(files):
+        return []
+    result = []
+    for root, dirs, files in os.walk(path_for_open(album_dir)):
+        dirs.sort(key=_natural_sort_key)
+        for filename in sorted(files, key=_natural_sort_key):
             if os.path.splitext(filename)[1].lower() in IMAGE_EXTS:
-                return os.path.join(root, filename)
-    return ''
+                result.append(os.path.join(root, filename))
+    return result
+
+
+def _natural_sort_key(value: str):
+    return [int(part) if part.isdigit() else part.lower() for part in re.split(r'(\d+)', str(value))]
 
 
 def _is_inside(path: str, root: str) -> bool:

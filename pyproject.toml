@@ -26,6 +26,7 @@ classifiers=[
 dependencies = [
     "commonx>=0.6.38",
     "curl-cffi",
+    "img2pdf",
     "pillow",
     "PySide6",
     "PySide6-Fluent-Widgets",

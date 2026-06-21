@@ -32,6 +32,7 @@ setup(
     install_requires=[
         'curl_cffi',
         'commonX',
+        'img2pdf',
         'PyYAML',
         'Pillow',
         'PySide6',

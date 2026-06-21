@@ -1,5 +1,50 @@
 ﻿# Development Log
 
+## Version 0.2.4 - 2026-06-21 14:00:09 +08:00
+
+### 修改范围
+
+- 修复桌面端下载完成后只留下图片目录、没有合成 PDF 的问题。
+- 将桌面端项目版本号从 `0.2.3` 更新为 `0.2.4`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `src/jmcomic_shelf/download_service.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_packaging.py`
+- `pyproject.toml`
+- `setup.py`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新 Release 基线为 `v0.2.3`。
+- 重新排查用户截图中的 JM82243 失败场景，确认真实根因不是“PDF 已生成但桌面端找不到”，而是桌面端下载后没有可靠生成 PDF，只保留了章节图片目录。
+- 修复桌面端打包依赖：在 `pyproject.toml` 和 `setup.py` 中加入 `img2pdf`，确保 PyAppify 发布包具备 PDF 合成能力。
+- 为 `DownloadService.run_task()` 增加兜底逻辑：下载结束后如果没有找到 PDF，但能找到本次下载的作品图片目录，则桌面端主动用 `img2pdf` 合成 PDF，再执行既有的第一作者目录归档、根目录 `Cover/` 封面缓存、图片目录删除和 SQLite 索引写入流程。
+- 新增回归测试 `test_run_task_builds_pdf_from_downloaded_images_when_plugin_did_not_create_pdf`，覆盖无 PDF 但有章节图片时任务应成功、PDF 应生成、封面应缓存、原图片目录应删除。
+- 新增包装测试 `test_desktop_package_includes_pdf_generation_dependency`，防止后续发布包再次遗漏 `img2pdf`。
+- 已同步整理本机下载目录中这次失败遗留的 JM82243：从 35 张图片合成 PDF，复制封面，删除原图片目录，并重建桌面端索引；该本地下载内容不进入 Git 提交。
+- 本次修复的是既有下载工作流承诺，不新增用户入口、不改变目录结构和 UI 规则；README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/` 暂不需要同步正文。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.2.4`，用于 PyAppify 自动更新链路识别新包版本。未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+
+### 验证情况
+
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_download_service.TestShelfDownloadService.test_run_task_builds_pdf_from_downloaded_images_when_plugin_did_not_create_pdf -v`，确认新增下载回归测试失败，失败原因为任务状态仍为 `failed`。
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_packaging.TestShelfPackaging.test_desktop_package_includes_pdf_generation_dependency -v`，确认新增包装测试失败，失败原因为发布依赖缺少 `img2pdf`。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_download_service -v`，12 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_packaging -v`，4 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，56 项通过；仍有既有 QFluentWidgets Pro 提示、`zhconv`/Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; $env:PYTHONPYCACHEPREFIX=(Join-Path $env:TEMP 'codex_jmcomic_pycache'); python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\styles.py`，通过。
+- 已复扫 `D:\Others\JMComic`，确认 `remaining_album_image_dirs=0`、`missing_pdf_image_albums=0`；已用 `pikepdf` 校验 JM82243 PDF 为 35 页。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+- 已运行 `$env:PYTHONPATH='src'; python -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.2.4`。
+- 已确认 `pyappify.yml`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+- 提交、tag push 和 GitHub Release workflow 确认待完成。
+
 ## Version 0.2.3 - 2026-06-21 03:13:15 +08:00
 
 ### 修改范围

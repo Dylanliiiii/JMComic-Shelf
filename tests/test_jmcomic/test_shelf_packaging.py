@@ -24,6 +24,18 @@ class TestShelfPackaging(unittest.TestCase):
             'jmcomic_shelf.__version__',
         )
 
+    def test_desktop_package_includes_pdf_generation_dependency(self):
+        import pathlib
+        import tomllib
+
+        pyproject = pathlib.Path('pyproject.toml')
+        data = tomllib.loads(pyproject.read_text(encoding='utf-8'))
+        dependencies = {item.lower() for item in data['project']['dependencies']}
+        setup_py = pathlib.Path('setup.py').read_text(encoding='utf-8').lower()
+
+        self.assertIn('img2pdf', dependencies)
+        self.assertIn("'img2pdf'", setup_py)
+
     def test_setup_py_reads_desktop_app_version(self):
         import pathlib
 
