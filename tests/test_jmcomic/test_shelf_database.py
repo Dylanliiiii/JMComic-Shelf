@@ -123,3 +123,23 @@ class TestShelfDatabase(unittest.TestCase):
                 self.assertEqual([x.jm_id for x in db.query_albums('')], ['123456'])
             finally:
                 db.close()
+
+    def test_replace_albums_removes_records_missing_from_latest_scan(self):
+        from jmcomic_shelf.database import ShelfDatabase
+        from jmcomic_shelf.models import AlbumRecord
+
+        with TemporaryDirectory() as tmp:
+            db = ShelfDatabase(os.path.join(tmp, 'shelf.db'))
+            db.open()
+            try:
+                db.upsert_album(AlbumRecord('111', '旧作品', authors=['作者A'], tags=['旧标签']))
+                db.upsert_album(AlbumRecord('222', '保留作品', authors=['作者B'], tags=['新标签']))
+
+                db.replace_albums([
+                    AlbumRecord('222', '保留作品', authors=['作者B'], tags=['新标签']),
+                ])
+
+                self.assertEqual([x.jm_id for x in db.query_albums('')], ['222'])
+                self.assertEqual(db.list_tags(), ['新标签'])
+            finally:
+                db.close()

@@ -119,6 +119,67 @@ class TestShelfDownloadService(unittest.TestCase):
             self.assertFalse(os.path.exists(original_pdf))
             self.assertFalse(os.path.exists(album_dir))
 
+    def test_organize_downloaded_album_removes_matching_image_dir_when_pdf_already_final(self):
+        from PIL import Image
+
+        from jmcomic_shelf.download_service import DownloadService
+
+        with TemporaryDirectory() as tmp:
+            author_dir = os.path.join(tmp, '作者A')
+            album_dir = os.path.join(author_dir, 'JM211899-作品A')
+            image_dir = os.path.join(album_dir, '第1章')
+            os.makedirs(image_dir)
+            Image.new('RGB', (120, 180), 'red').save(os.path.join(image_dir, '00001.jpg'))
+            final_pdf = os.path.join(author_dir, 'JM211899-作品A.pdf')
+            with open(final_pdf, 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            service = DownloadService('', download_dir=tmp)
+
+            organized_pdf, cover_path = service.organize_downloaded_album(FakeDownloadedAlbum(), final_pdf)
+
+            self.assertEqual(organized_pdf, final_pdf)
+            self.assertTrue(os.path.exists(cover_path))
+            self.assertFalse(os.path.exists(album_dir))
+
+    def test_organize_downloaded_album_does_not_trust_author_dir_as_album_dir(self):
+        from PIL import Image
+
+        from jmcomic_shelf.download_service import DownloadService
+
+        class FakeDirRule:
+            def __init__(self, path):
+                self.path = path
+
+            def decide_album_root_dir(self, album):
+                return self.path
+
+        class FakeOption:
+            def __init__(self, path):
+                self.dir_rule = FakeDirRule(path)
+
+        with TemporaryDirectory() as tmp:
+            author_dir = os.path.join(tmp, '作者A')
+            album_dir = os.path.join(author_dir, 'JM211899-作品A')
+            image_dir = os.path.join(album_dir, '第1章')
+            os.makedirs(image_dir)
+            Image.new('RGB', (120, 180), 'red').save(os.path.join(image_dir, '00001.jpg'))
+            final_pdf = os.path.join(author_dir, 'JM211899-作品A.pdf')
+            with open(final_pdf, 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+
+            service = DownloadService('', download_dir=tmp)
+
+            organized_pdf, cover_path = service.organize_downloaded_album(
+                FakeDownloadedAlbum(),
+                final_pdf,
+                FakeOption(author_dir),
+            )
+
+            self.assertEqual(organized_pdf, final_pdf)
+            self.assertTrue(os.path.exists(cover_path))
+            self.assertFalse(os.path.exists(album_dir))
+
     def test_run_task_accepts_default_feature_pdf_name(self):
         from jmcomic_shelf.download_service import DownloadService, DownloadTask
 

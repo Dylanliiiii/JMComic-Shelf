@@ -200,3 +200,19 @@ class TestShelfLibraryPage(unittest.TestCase):
         full_reload.assert_not_called()
         window.close()
         self.assertIsNotNone(app)
+
+    def test_main_window_refreshes_library_after_downloads_finish(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.ui.main_window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        window = MainWindow()
+
+        with patch.object(window.library_page, 'reload_for_activation') as reload_library:
+            window.download_page.downloads_finished.emit()
+
+        reload_library.assert_called_once()
+        window.close()
+        self.assertIsNotNone(app)

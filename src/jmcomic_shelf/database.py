@@ -114,6 +114,18 @@ class ShelfDatabase:
             for record in records:
                 self._upsert_album_in_transaction(conn, record)
 
+    def replace_albums(self, records: List[AlbumRecord]) -> None:
+        conn = self._require_conn()
+        latest_ids = {str(record.jm_id) for record in records}
+        with conn:
+            existing_ids = {
+                row['jm_id'] for row in conn.execute('SELECT jm_id FROM albums').fetchall()
+            }
+            for jm_id in existing_ids - latest_ids:
+                conn.execute('DELETE FROM albums WHERE jm_id = ?', (jm_id,))
+            for record in records:
+                self._upsert_album_in_transaction(conn, record)
+
     def _upsert_album_in_transaction(self, conn, record: AlbumRecord) -> None:
         conn.execute(
             """

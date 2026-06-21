@@ -1,5 +1,49 @@
 ﻿# Development Log
 
+## 2026-06-21 16:59:19 +08:00
+
+### 修改范围
+
+- 修复桌面端下载后可能残留章节图片目录的问题。
+- 修复设置页“重建索引”扫描数量与本地书库“全部”数量不一致的问题。
+- 调整 GitHub Actions 线上测试触发方式，避免 `Run Test (HTML)` 在 master 定时失败后反复发送邮件。
+- 补充桌面端下载、索引和书库刷新回归测试。
+
+### 涉及文件
+
+- `.github/workflows/test_api.yml`
+- `.github/workflows/test_html.yml`
+- `src/jmcomic_shelf/database.py`
+- `src/jmcomic_shelf/download_service.py`
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/ui/download_page.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `tests/test_jmcomic/test_shelf_database.py`
+- `tests/test_jmcomic/test_shelf_download_service.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 根因判断：`Run Test (HTML)` 邮件来自 GitHub Actions 在默认分支 master 上执行的定时线上测试；Release 创建成功与该测试失败相互独立。移除 `test_html.yml` 和同类 `test_api.yml` 的每日 `schedule` 触发，保留手动 `workflow_dispatch` 和 dev 分支代码变更触发。
+- 根因判断：下载整理逻辑如果从配置或上游路径规则拿到的是作者目录，而不是 `JM号-标题` 作品目录，会为了避免误删作者目录而跳过清理，导致作品目录下的 `第1章` 图片目录残留。调整 `_find_album_dir()`，只有配置返回的目录本身匹配 `JM{ID}-...` 时才直接信任，否则继续在下载根目录中寻找匹配的作品目录。
+- 根因判断：`rebuild_index_from_download_dir()` 过去只向 SQLite 追加或更新扫描到的记录，不删除已经不在下载目录里的旧记录；因此设置页可能显示“扫描到 91 本”，本地书库仍读取到旧的 96 本。新增 `ShelfDatabase.replace_albums()`，重建索引时以当前扫描结果替换数据库中的书目集合。
+- 下载页新增 `downloads_finished` 信号，主窗口连接到本地书库轻量刷新；下载任务全部结束后，本地书库会重新读取 SQLite 并启动后台同步，避免“新下载后全部数量还停在旧值”。
+- 新增回归测试覆盖索引替换、重建索引调用替换式写入、下载整理不误信作者目录、下载完成刷新书库。
+- 本次修复没有创建 tag、没有发布 Release、没有修改项目版本号；README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/` 已检查，既有规则已经覆盖“下载后不保留图片目录”和“书库可重建索引”，本次无需同步正文。
+- 检查最近开发记录时发现更早历史条目仍存在 mojibake；本次不大面积重写历史记录，只保证新增记录为正常 UTF-8 中文。
+
+### 验证情况
+
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_database.TestShelfDatabase.test_replace_albums_removes_records_missing_from_latest_scan -v`，确认新增索引替换测试失败，失败原因为 `ShelfDatabase` 尚无 `replace_albums()`。
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_index_service.TestShelfIndexService.test_rebuild_index_from_download_dir_replaces_records_in_one_batch -v`，确认重建索引测试失败，失败原因为仍调用 `upsert_albums()`。
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_library_page.TestShelfLibraryPage.test_main_window_refreshes_library_after_downloads_finish -v`，确认下载完成刷新测试失败，失败原因为 `DownloadPage` 尚无 `downloads_finished` 信号。
+- 已先运行 `$env:PYTHONPATH='src;tests'; python -m unittest tests.test_jmcomic.test_shelf_download_service.TestShelfDownloadService.test_organize_downloaded_album_does_not_trust_author_dir_as_album_dir -v`，确认下载清理测试失败，失败原因为作品图片目录仍存在。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，60 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py`，通过。
+
 ## Version 0.2.4 - 2026-06-21 14:00:09 +08:00
 
 ### 修改范围

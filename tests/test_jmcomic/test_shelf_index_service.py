@@ -73,7 +73,7 @@ class TestShelfIndexService(unittest.TestCase):
             self.assertEqual(records[0].album_dir, os.path.dirname(album_dir))
             self.assertTrue(os.path.exists(records[0].cover_path))
 
-    def test_rebuild_index_from_download_dir_writes_records_in_one_batch(self):
+    def test_rebuild_index_from_download_dir_replaces_records_in_one_batch(self):
         from tempfile import TemporaryDirectory
 
         from jmcomic_shelf.index_service import rebuild_index_from_download_dir
@@ -87,8 +87,8 @@ class TestShelfIndexService(unittest.TestCase):
             def open(self):
                 calls.append(('open', self.db_path))
 
-            def upsert_albums(self, records):
-                calls.append(('batch', [record.jm_id for record in records]))
+            def replace_albums(self, records):
+                calls.append(('replace', [record.jm_id for record in records]))
 
             def upsert_album(self, record):
                 calls.append(('single', record.jm_id))
@@ -107,7 +107,7 @@ class TestShelfIndexService(unittest.TestCase):
                 count = rebuild_index_from_download_dir(tmp, os.path.join(tmp, 'app', 'shelf.db'))
 
         self.assertEqual(count, 2)
-        self.assertEqual([call[0] for call in calls], ['open', 'batch', 'close'])
+        self.assertEqual([call[0] for call in calls], ['open', 'replace', 'close'])
         self.assertEqual(calls[1][1], ['200', '100'])
 
     def test_rebuild_index_from_pdf_only_author_dir_uses_cover_folder(self):

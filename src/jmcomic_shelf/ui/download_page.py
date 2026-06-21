@@ -44,6 +44,8 @@ class DownloadWorker(QObject):
 
 
 class DownloadPage(QWidget):
+    downloads_finished = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName('downloadPage')
@@ -161,6 +163,7 @@ class DownloadPage(QWidget):
         else:
             self.status.setText('全部已完成。')
         self.start_button.setEnabled(True)
+        self.downloads_finished.emit()
 
     @Slot()
     def clear_worker(self):

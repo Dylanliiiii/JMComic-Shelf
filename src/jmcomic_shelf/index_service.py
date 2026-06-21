@@ -47,7 +47,7 @@ def rebuild_index_from_download_dir(download_dir: str, db_path: str, cover_cache
     db = ShelfDatabase(db_path)
     db.open()
     try:
-        db.upsert_albums(records)
+        db.replace_albums(records)
     finally:
         db.close()
     return len(records)

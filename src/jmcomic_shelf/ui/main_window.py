@@ -28,6 +28,7 @@ class MainWindow(FluentWindow):
         self.detail_page = DetailPage(self)
         self.settings_page = SettingsPage(self)
         self.settings_page.theme_changed.connect(self.apply_theme_mode)
+        self.download_page.downloads_finished.connect(self.library_page.reload_for_activation)
 
         self.library_page.setObjectName('libraryPage')
         self.download_page.setObjectName('downloadPage')

@@ -161,21 +161,25 @@ class DownloadService:
         if re.match(r'^JM\d+-.+', os.path.basename(pdf_dir), re.IGNORECASE):
             return pdf_dir
 
+        target_name = f'JM{album.album_id}-'
+        option_album_dir = ''
         if option is not None:
             try:
                 album_dir = option.dir_rule.decide_album_root_dir(album)
                 if album_dir and os.path.isdir(path_for_open(album_dir)):
-                    return album_dir
+                    if os.path.basename(album_dir).startswith(target_name):
+                        return album_dir
+                    option_album_dir = album_dir
             except Exception:
                 pass
 
-        target_name = f'JM{album.album_id}-'
         for root, dirs, _ in walk_paths(self.download_dir):
             for name in dirs:
                 candidate = os.path.join(root, name)
                 if name.startswith(target_name) and os.path.isdir(path_for_open(candidate)):
                     return candidate
-        return ''
+
+        return option_album_dir
 
     def _copy_cover(self, jm_id: str, title: str, source_path: str) -> str:
         if not source_path:
