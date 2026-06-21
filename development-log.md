@@ -1,5 +1,35 @@
 ﻿# Development Log
 
+## Version 0.2.5 - 2026-06-21 20:21:05 +08:00
+
+### 修改范围
+
+- 发布桌面端下载整理、书库索引刷新和 GitHub Actions 通知修复版。
+- 将桌面端项目版本号从 `0.2.4` 更新为 `0.2.5`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `development-log.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新 Release 基线为 `v0.2.4`。
+- 本次发布包含 `2026-06-21 16:59:19 +08:00` 开发记录中的修复：下载整理不再误信作者目录为作品目录，重建索引会替换 SQLite 中已经不在下载目录的旧记录，下载完成后会刷新本地书库，并移除 HTML/API 线上测试每日定时触发以减少 master 上的失败邮件。
+- 本次属于修复版和小型稳定性改进，因此按语义化版本从 `v0.2.4` 升级到 `v0.2.5`。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.2.5`，用于 PyAppify 自动更新链路识别新包版本。未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次是既有下载整理、索引重建和 CI 触发策略修复的正式发布，不新增用户入口、不改变目录规则，暂不需要同步正文。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，60 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py`，通过。
+- 已运行 `$env:PYTHONPATH='src'; python -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.2.5`。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+- 已确认 `pyappify.yml`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 提交、推送 `master` 和推送 `v0.2.5` tag 作为本次发布收尾执行。
+
 ## 2026-06-21 16:59:19 +08:00
 
 ### 修改范围
