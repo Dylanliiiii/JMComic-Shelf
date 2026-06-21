@@ -44,6 +44,7 @@ def rebuild_index_from_download_dir(download_dir: str, db_path: str, cover_cache
         return 0
 
     records = _scan_download_dir(download_dir, cover_cache_dir)
+    _prune_catalog_to_records(download_dir, records)
     db = ShelfDatabase(db_path)
     db.open()
     try:
@@ -110,6 +111,29 @@ def _scan_download_dir(download_dir: str, cover_cache_dir: str = '') -> list[Alb
         _merge_catalog_record(record, catalog_by_id.get(jm_id))
 
     return sorted(by_id.values(), key=_record_sort_key)
+
+
+def _prune_catalog_to_records(download_dir: str, records: list[AlbumRecord]) -> bool:
+    catalog_path = os.path.join(download_dir, 'catalog.md')
+    if not os.path.exists(catalog_path):
+        return False
+
+    valid_ids = {str(record.jm_id) for record in records}
+    catalog = CatalogPlugin.read_catalog(catalog_path)
+    changed = False
+    for author in list(catalog.keys()):
+        kept_items = [item for item in catalog[author] if str(item.get('id', '')) in valid_ids]
+        if len(kept_items) != len(catalog[author]):
+            changed = True
+        if kept_items:
+            catalog[author] = kept_items
+        else:
+            catalog.pop(author, None)
+            changed = True
+
+    if changed:
+        CatalogPlugin.write_catalog(catalog_path, catalog)
+    return changed
 
 
 def _catalog_records_by_id(download_dir: str) -> dict[str, dict]:

@@ -49,6 +49,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - 记录标题、ID、链接、标签、章节。
 - 从本次下载成功的第一章第一张图片生成 base64 封面。
 - 使用 HTML `<img>` 控制封面宽度和顶部对齐。
+- 桌面端重建索引和批量删除后，应按实际仍存在的本地漫画裁剪 `catalog.md`，避免总目录留下已删除作品。
 
 修改目录插件时，同步检查：
 
@@ -73,6 +74,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 
 书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有 PDF、根目录 `Cover/` 封面缓存和旧版漫画图片目录，再显示结果。
 SQLite 标签应与 `catalog.md` 一致统一保存为中文简体；书库页的“分类”按钮应展开当前书库出现过的全部标签，标签面板最多展示五行并支持滚动；可同时选择多个标签，满足任一选中标签的漫画都会显示。
+重建索引必须用本次扫描结果替换 SQLite 中旧记录，并同步清理 `catalog.md` 中已经没有本地 PDF 或图片目录的旧条目。
 
 ### Windows 脚本
 
@@ -134,6 +136,7 @@ rule: Bd / Aauthor / JM{Aid}-{Atitle} / 第{Pindex}章
 如果用户要求恢复章节标题目录，需要提醒 Windows 长路径风险。
 
 下载完成并生成 PDF 后，桌面端会把最终文件整理为 `下载根目录 / 第一作者 / JM{Aid}-{Atitle}.pdf`，并把第一面图片复制到 `下载根目录 / Cover / JM{Aid}-{Atitle}.jpg`。章节图片目录只作为中间产物，整理完成后不再保留。
+批量删除本地漫画时，只允许删除匹配 `JM{Aid}-{Atitle}` 的作品目录和对应 PDF，不应因为旧索引中的 `album_dir` 指向作者目录而删除整个作者目录。
 
 ## README 与文档
 

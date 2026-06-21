@@ -1,5 +1,46 @@
 ﻿# Development Log
 
+## 2026-06-21 20:59:12 +08:00
+
+### 修改范围
+
+- 修复设置页重建索引数量、书库“全部”数量和 `catalog.md` 总目录数量不一致的问题。
+- 修复旧索引中 `album_dir` 指向作者目录时，批量删除可能误删作者目录的风险。
+- 同步本机用户指定下载目录的 SQLite 索引和 `catalog.md` 条目。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/index_service.py`
+- `src/jmcomic_shelf/delete_service.py`
+- `tests/test_jmcomic/test_shelf_index_service.py`
+- `tests/test_jmcomic/test_shelf_delete_service.py`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 根因判断：真实下载目录当前实际可扫描到的 PDF 为 80 本，SQLite 中残留 85 条旧索引；多出的记录对应 PDF 已不存在，但旧 `album_dir` 仍指向作者目录，导致书库“全部”仍能读到旧记录。
+- 根因判断：`catalog.md` 仍保留多条已经没有本地 PDF 的旧条目；桌面端过去只在下载时追加或更新目录，没有在重建索引或删除后裁剪旧条目。
+- `rebuild_index_from_download_dir()` 在扫描完成后，会按本次扫描到的 JM ID 裁剪下载目录下的 `catalog.md`，并继续用同一批记录替换 SQLite 书目集合。
+- `delete_album_files()` 增加目录删除保护：只有目录名匹配当前记录的 `JM号-标题` 作品目录时才允许删除；如果旧索引中的 `album_dir` 是作者目录，则跳过该目录，避免误删同作者其他作品。
+- 已对用户指定下载目录执行一次同步重建，复核后实际 PDF、扫描结果、SQLite 和 `catalog.md` 唯一条目均为 80，四者差异为空。
+- 已同步检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：本次改变了重建索引、catalog 同步和批量删除安全行为，因此更新了协作规则、项目 Skill、spec 和 plan；README 作为普通使用入口无需调整。
+- 本次为日常 bug 修复，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已先运行新增 catalog 裁剪回归测试，确认失败原因为 `catalog.md` 仍保留没有本地文件的旧条目。
+- 已先运行新增删除保护回归测试，确认失败原因为旧索引中的作者目录会被当作可删除目录。
+- 修复后已运行上述两个回归测试，均通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m unittest discover -s tests -p 'test_shelf_*.py' -v`，62 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; python -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\delete_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py`，通过。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+
 ## Version 0.2.5 - 2026-06-21 20:21:05 +08:00
 
 ### 修改范围

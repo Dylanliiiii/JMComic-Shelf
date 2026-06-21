@@ -40,3 +40,26 @@ class TestShelfDeleteService(unittest.TestCase):
             self.assertTrue(os.path.exists(outside_pdf))
             self.assertIn(outside_pdf, result.skipped_paths)
             self.assertIn(download_dir, result.skipped_paths)
+
+    def test_delete_album_files_does_not_delete_author_dir_from_stale_pdf_only_record(self):
+        from jmcomic_shelf.delete_service import delete_album_files
+        from jmcomic_shelf.models import AlbumRecord
+
+        with TemporaryDirectory() as tmp:
+            download_dir = os.path.join(tmp, 'downloads')
+            author_dir = os.path.join(download_dir, '作者A')
+            os.makedirs(author_dir)
+            other_pdf = os.path.join(author_dir, 'JM123456-仍然存在的作品.pdf')
+            with open(other_pdf, 'wb') as f:
+                f.write(b'pdf')
+
+            stale_pdf = os.path.join(author_dir, 'JM211899-已经删除的作品.pdf')
+            result = delete_album_files(
+                [AlbumRecord('211899', '已经删除的作品', pdf_path=stale_pdf, album_dir=author_dir)],
+                download_dir,
+            )
+
+            self.assertEqual(result.deleted_count, 0)
+            self.assertTrue(os.path.isdir(author_dir))
+            self.assertTrue(os.path.exists(other_pdf))
+            self.assertIn(author_dir, result.skipped_paths)

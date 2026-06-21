@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 from dataclasses import dataclass, field
 from typing import Iterable
@@ -23,6 +24,9 @@ def delete_album_files(records: Iterable[AlbumRecord], download_dir: str) -> Del
     for record in records:
         for path in _candidate_paths(record):
             normalized = os.path.abspath(path)
+            if os.path.isdir(normalized) and not _is_album_dir_for_record(record, normalized):
+                result.skipped_paths.append(path)
+                continue
             if not _is_inside(root, normalized):
                 result.skipped_paths.append(path)
                 continue
@@ -47,6 +51,11 @@ def _candidate_paths(record: AlbumRecord) -> list[str]:
     if record.pdf_path and record.pdf_path not in paths:
         paths.append(record.pdf_path)
     return paths
+
+
+def _is_album_dir_for_record(record: AlbumRecord, path: str) -> bool:
+    basename = os.path.basename(os.path.normpath(path))
+    return re.match(rf'^JM{re.escape(str(record.jm_id))}-.+', basename, re.IGNORECASE) is not None
 
 
 def _is_inside(root: str, path: str) -> bool:

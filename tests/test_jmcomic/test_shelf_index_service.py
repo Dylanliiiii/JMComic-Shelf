@@ -215,6 +215,36 @@ class TestShelfIndexService(unittest.TestCase):
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0].authors, ['作者A'])
 
+    def test_rebuild_index_from_download_dir_prunes_catalog_entries_without_local_files(self):
+        from tempfile import TemporaryDirectory
+
+        from jmcomic.jm_plugin import CatalogPlugin
+        from jmcomic_shelf.index_service import rebuild_index_from_download_dir
+
+        with TemporaryDirectory() as tmp:
+            author_dir = os.path.join(tmp, '作者A')
+            os.makedirs(author_dir)
+            with open(os.path.join(author_dir, 'JM211899-作品A.pdf'), 'wb') as f:
+                f.write(b'%PDF-1.4\n')
+            catalog_path = os.path.join(tmp, 'catalog.md')
+            with open(catalog_path, 'w', encoding='utf-8-sig') as f:
+                f.write(
+                    '# 作者A\n'
+                    '1. 📖 标题：作品A\n'
+                    '   - 🆔 ID：JM211899\n'
+                    '   - 🏷️ 标签：标签1\n'
+                    '\n'
+                    '2. 📖 标题：已经删除的旧作品\n'
+                    '   - 🆔 ID：JM123456\n'
+                    '   - 🏷️ 标签：标签2\n'
+                )
+
+            count = rebuild_index_from_download_dir(tmp, os.path.join(tmp, 'app', 'shelf.db'))
+            catalog = CatalogPlugin.read_catalog(catalog_path)
+
+            self.assertEqual(count, 1)
+            self.assertEqual([item['id'] for item in catalog['作者A']], ['211899'])
+
     def test_rebuild_index_from_download_dir_finds_long_path_pdf(self):
         from tempfile import TemporaryDirectory
 
