@@ -10,6 +10,7 @@ from .theme import apply_app_theme
 from .detail_page import DetailPage
 from .download_page import DownloadPage
 from .library_page import LibraryPage
+from .official_site_page import OfficialSitePage
 from .repair_page import RepairPage
 from .settings_page import SettingsPage
 
@@ -28,6 +29,7 @@ class MainWindow(FluentWindow):
         self.download_page = DownloadPage(self)
         self.detail_page = DetailPage(self)
         self.repair_page = RepairPage(self)
+        self.official_site_page = OfficialSitePage(self)
         self.settings_page = SettingsPage(self)
         self.settings_page.theme_changed.connect(self.apply_theme_mode)
         self.download_page.downloads_finished.connect(self.library_page.reload_for_activation)
@@ -36,12 +38,14 @@ class MainWindow(FluentWindow):
         self.download_page.setObjectName('downloadPage')
         self.detail_page.setObjectName('detailPage')
         self.repair_page.setObjectName('repairPage')
+        self.official_site_page.setObjectName('officialSitePage')
         self.settings_page.setObjectName('settingsPage')
 
         self.addSubInterface(self.library_page, FluentIcon.LIBRARY, '本地书库')
         self.addSubInterface(self.download_page, FluentIcon.DOWNLOAD, '禁漫下载')
         self.addSubInterface(self.detail_page, FluentIcon.INFO, '禁漫预览')
         self.addSubInterface(self.repair_page, FluentIcon.SYNC, '书库修复')
+        self.addSubInterface(self.official_site_page, FluentIcon.GLOBE, '禁漫官网')
         self.addSubInterface(
             self.settings_page,
             FluentIcon.SETTING,
@@ -82,6 +86,13 @@ class MainWindow(FluentWindow):
             '  border-radius: 8px;'
             '}'
         )
-        for page in (self.library_page, self.download_page, self.detail_page, self.repair_page, self.settings_page):
+        for page in (
+            self.library_page,
+            self.download_page,
+            self.detail_page,
+            self.repair_page,
+            self.official_site_page,
+            self.settings_page,
+        ):
             apply_page_style(page)
         prepare_table(self.download_page.table)
