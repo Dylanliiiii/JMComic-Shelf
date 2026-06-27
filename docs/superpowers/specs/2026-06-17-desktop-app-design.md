@@ -98,6 +98,18 @@
 - 只有 PDF 成功生成后才删除原作品图片目录；失败时保留图片目录并在日志中提示。
 - 修复结束后复用重建索引逻辑，同步 SQLite 和 `catalog.md`，避免目录、数据库和书库数量不一致。
 
+### 禁漫官网
+
+禁漫官网页用于集中展示官方发布页、分流域名、APP 下载地址和联系方式。
+
+核心能力：
+
+- 左侧导航项位于“书库修复”和底部“设置”之间，使用 `FluentWindow.addSubInterface()` 和内置 `FluentIcon.GLOBE`。
+- 页面使用 `SmoothScrollArea`、`CardWidget`、`TitleLabel`、`SubtitleLabel`、`CaptionLabel` 和 `PushButton` 按用途分组展示入口。
+- 地址按钮显示用户提供的原始文本；`18comic.vip`、`18comic.ink` 和 `jmcomic-zzz.one` 保持裸域名，不硬编码补写协议。
+- 点击时通过 `QUrl.fromUserInput()` 解析，再使用 `QDesktopServices.openUrl()` 交给系统默认浏览器。
+- 页面不内嵌 WebEngine，也不在加载时发起网络探测；站点返回、地区路由和浏览器拦截不由桌面端判断。
+
 ### 设置
 
 设置页管理桌面端运行所需的本地路径。

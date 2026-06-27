@@ -25,7 +25,20 @@ class TestShelfOfficialSitePage(unittest.TestCase):
             'http://discord.gg/V74p7HM',
             'http://t.me/hcomic18',
         ])
-        self.assertIn('re18comic＠gmail.com', displays)
+        self.assertEqual(displays, [
+            'https://jmcomicog.net/',
+            '18comic.vip',
+            '18comic.ink',
+            'jmcomic-zzz.one',
+            'jmcomic-zzz.org',
+            'https://comic18j-codi.cc',
+            'https://comic18j-yodo.club',
+            'https://comic18j-codi.club',
+            'jm-88.cc/ZNPJam',
+            're18comic＠gmail.com',
+            'discord.gg/V74p7HM',
+            't.me/hcomic18',
+        ])
         self.assertNotIn('https://18comic.vip', targets)
         self.assertNotIn('https://18comic.ink', targets)
         self.assertNotIn('https://jmcomic-zzz.one', targets)

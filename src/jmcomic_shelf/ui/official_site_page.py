@@ -40,7 +40,7 @@ OFFICIAL_SITE_GROUPS = (
     )),
     OfficialSiteGroup('东南亚路线建议使用', '', (
         OfficialSiteLink('', 'jmcomic-zzz.one', 'jmcomic-zzz.one'),
-        OfficialSiteLink('', 'http://jmcomic-zzz.org', 'http://jmcomic-zzz.org'),
+        OfficialSiteLink('', 'jmcomic-zzz.org', 'http://jmcomic-zzz.org'),
     )),
     OfficialSiteGroup('大陆域名', '请使用 Chrome 浏览器打开', (
         OfficialSiteLink('大陆域名', 'https://comic18j-codi.cc', 'https://comic18j-codi.cc'),
@@ -48,7 +48,7 @@ OFFICIAL_SITE_GROUPS = (
         OfficialSiteLink('分流2', 'https://comic18j-codi.club', 'https://comic18j-codi.club'),
     )),
     OfficialSiteGroup('APP 软件下载安装！！！', '', (
-        OfficialSiteLink('', 'http://jm-88.cc/ZNPJam', 'http://jm-88.cc/ZNPJam'),
+        OfficialSiteLink('', 'jm-88.cc/ZNPJam', 'http://jm-88.cc/ZNPJam'),
     )),
     OfficialSiteGroup(
         '联系方式',
@@ -57,10 +57,10 @@ OFFICIAL_SITE_GROUPS = (
             OfficialSiteLink('邮箱', 're18comic＠gmail.com', 'http://gmail.com'),
             OfficialSiteLink(
                 '或是直接到 DC 群或 TG 找管理员处理问题',
-                'http://discord.gg/V74p7HM',
+                'discord.gg/V74p7HM',
                 'http://discord.gg/V74p7HM',
             ),
-            OfficialSiteLink('Telegram', 'http://t.me/hcomic18', 'http://t.me/hcomic18'),
+            OfficialSiteLink('Telegram', 't.me/hcomic18', 'http://t.me/hcomic18'),
         ),
     ),
 )

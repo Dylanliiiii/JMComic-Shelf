@@ -15,7 +15,8 @@
 - `detail_service.py`：查询单个 JM 号详情，并为预览页缓存可显示的封面图。
 - `file_actions.py`：打开 PDF 和在资源管理器中定位。
 - `repair_service.py`：扫描历史残留图片目录，补全缺失 PDF，成功后清理原图片目录，并复用重建索引同步 SQLite 和 `catalog.md`。
-- `ui/`：本地书库、禁漫下载、禁漫预览、书库修复、设置页面。
+- `ui/`：本地书库、禁漫下载、禁漫预览、书库修复、禁漫官网、设置页面。
+- `ui/official_site_page.py`：分组展示官方入口，并把点击交给系统默认浏览器。
 - `pyappify.yml`：PyAppify 桌面版发布配置。
 - `.github/workflows/release.yml`：`v*` tag 触发的 GitHub Release 打包流程。
 
@@ -77,13 +78,20 @@
 - PDF 生成成功后复制封面到根目录 `Cover/` 并删除原图片目录；失败时保留原目录并显示日志。
 - 修复结束后调用重建索引，同步 SQLite 与 `catalog.md`。
 
-### 6. 文档和编码清理
+### 6. 禁漫官网页
+
+- 左侧导航位于“书库修复”和底部“设置”之间，使用 `FluentIcon.GLOBE` 和 `addSubInterface()`。
+- 使用 Fluent 滚动卡片按发布页、国际域名、东南亚路线、大陆分流、APP 下载和联系方式分组。
+- 裸域名保持原始文本，通过 `QUrl.fromUserInput()` 解析后交给 `QDesktopServices.openUrl()`。
+- 不引入 WebEngine，不在页面加载时主动探测网络。
+
+### 7. 文档和编码清理
 
 - 每次修改到乱码文件时，把该文件恢复为正常 UTF-8 中文。
 - 优先清理 `README.md`、`assets/readme/README-en.md` 和测试文件中的 mojibake。
 - 开发记录新增内容必须保持正常中文。
 
-### 7. 发布与仓库清理
+### 8. 发布与仓库清理
 
 - 旧的 `download-jmcomic.bat` 和 `view-jmcomic.bat` 已由桌面端入口替代，不再保留。
 - 保留 `start-jmcomic-shelf.bat` 作为源码仓库启动入口。

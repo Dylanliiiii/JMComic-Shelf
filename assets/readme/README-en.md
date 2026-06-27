@@ -57,6 +57,7 @@ jmcomic-shelf
 - Non-cropped cover thumbnails.
 - Download task list with retry support.
 - Detail lookup for a single JM ID.
+- The Official JMComic page groups the release page, mirror domains, app download, and support contacts, opening links in the system browser.
 - Settings page for download directory, `jmcomic-option.yml`, app data directory, and theme mode.
 - Light, dark, and system theme modes, persisted across restarts.
 

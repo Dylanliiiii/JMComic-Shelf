@@ -4,12 +4,23 @@
 
 ### 修改范围
 
-- 规划桌面端“禁漫官网”功能页。
+- 新增桌面端“禁漫官网”功能页。
 - 明确官网链接展示、默认浏览器打开和裸域名处理规则。
+- 同步 README、AGENTS、项目专属 Skill、桌面端 spec 和 plan。
 
 ### 涉及文件
 
 - `docs/superpowers/specs/2026-06-27-official-site-page-design.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-27-official-site-page.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `src/jmcomic_shelf/ui/official_site_page.py`
+- `src/jmcomic_shelf/ui/main_window.py`
+- `tests/test_jmcomic/test_shelf_official_site_page.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
 - `TASKS.md`
 - `development-log.md`
 
@@ -19,14 +30,30 @@
 - 页面按发布页、国际域名、东南亚路线、大陆分流、APP 下载和联系方式分组，点击地址后交给系统默认浏览器。
 - `18comic.vip`、`18comic.ink`、`jmcomic-zzz.one` 保留用户提供的裸域名文本和数据，不硬编码补写 `https://`；点击时使用 `QUrl.fromUserInput()` 解析。
 - 设计明确不引入 Qt WebEngine、不内嵌官网、不在页面启动时主动探测网络，避免增加依赖和地区网络误判。
-- 已检查 README、`AGENTS.md`、项目专属 Skill、桌面端 spec 和 plan：本次新增用户可见导航入口，实现阶段需要同步更新。
-- 本次为规划检查点，尚未修改生产代码；未更新项目版本号，也未发布 Release。
+- 新增 `OfficialSitePage`，使用 `SmoothScrollArea`、`CardWidget`、QFluentWidgets 标签和按钮展示全部入口；链接打开失败时显示中文状态，不让页面崩溃。
+- 主窗口使用 `FluentIcon.GLOBE` 和 `addSubInterface()` 注册页面，导航顺序为“书库修复”“禁漫官网”“设置”，并纳入主题样式刷新。
+- 已同步更新 README、英文 README、`AGENTS.md`、项目专属 Skill、桌面端总设计和 v1 计划；本次新增用户可见入口，因此这些文档均需同步。
+- 本次为日常功能更新，未更新项目版本号，也未发布 Release。
 
 ### 验证情况
 
 - 已检查官方发布页当前列出的域名与用户提供内容一致：`https://jmcomicog.net/`。
 - 已使用 HTTP 探测确认所列域名能够建立连接；部分站点对非浏览器请求返回 403，因此设计只保证交给默认浏览器，不在应用内判断站点可用性。
 - 已运行设计文档自检：无 `TBD`、`TODO` 或未决占位，页面位置、全部链接、裸域名规则、错误边界和测试范围无冲突。
+- 用户已确认设计文档，已新增 `docs/superpowers/plans/2026-06-27-official-site-page.md`，将实现拆分为页面行为 RED 测试、页面与导航实现、文档同步、完整验证和普通 push 收尾。
+- 已安装当前 `pyproject.toml` 声明的桌面端开发依赖；该操作只更新本机 Python 3.13 环境，不修改仓库配置。
+- 实现前已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，现有 67 项桌面端测试通过。
+- 已先运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_official_site_page -v`，确认 3 项新增测试因页面模块和主窗口属性不存在而失败。
+- 第一轮实现后同一命令 3 项通过；随后新增原文保持和浏览器拒绝处理测试，先确认 1 项失败、1 项错误，再完成修正。
+- 修正后同一命令 5 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`。
+- 最终逐项对照用户原始 Markdown 后，新增显示文本断言并先确认失败：`jmcomic-zzz.org`、APP、Discord、Telegram 的按钮文字不应显示 `http://`；修正为“显示原文、目标保留协议”后测试通过。
+- 已再次运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_official_site_page -v`，5 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，72 项通过；输出仍只有既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\repair_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\delete_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\repair_page.py src\jmcomic_shelf\ui\official_site_page.py`，结果通过。
+- 已运行完整 `MainWindow` offscreen 视觉烟测并切换到 `officialSitePage`：页面使用深色低对比度卡片、滚动布局和原生按钮，没有白色内容画布或黑色说明条；离屏环境缺少中文字体回退，导致整个窗口（包括既有导航）显示方框，但源码文案和自动化断言均为正常 UTF-8 中文。
+- 已检查 README、英文 README、`AGENTS.md`、项目专属 Skill、桌面端 spec / plan 中的项目名、页面名、相对路径和参考项目完整 URL，结果一致。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
 
 ## Version 0.3.0 - 2026-06-21 21:47:53 +08:00
 

@@ -71,12 +71,13 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - `repair_service.py`：书库修复流程，扫描历史残留图片目录，补全缺失 PDF，成功后清理原图片目录，并复用重建索引同步 SQLite 和 `catalog.md`。
 - `detail_service.py`：单个 JM 号详情查询，并为预览页缓存线上封面图。
 - `cover_cache.py`：完整封面缩略图缓存，不裁剪。
-- `ui/`：PySide6 + QFluentWidgets 页面。
+- `ui/`：PySide6 + QFluentWidgets 页面，其中 `official_site_page.py` 负责“禁漫官网”分组卡片和系统浏览器跳转。
 
 书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有 PDF、根目录 `Cover/` 封面缓存和旧版漫画图片目录，再显示结果。
 SQLite 标签应与 `catalog.md` 一致统一保存为中文简体；书库页的“分类”按钮应展开当前书库出现过的全部标签，标签面板最多展示五行并支持滚动；可同时选择多个标签，满足任一选中标签的漫画都会显示。
 重建索引必须用本次扫描结果替换 SQLite 中旧记录，并同步清理 `catalog.md` 中已经没有本地 PDF 或图片目录的旧条目。
 书库修复页只负责把残留图片目录补成 PDF 并清理成功项；数量、条目和 `catalog.md` 同步继续复用重建索引逻辑，不另写一套目录裁剪规则。PDF 生成失败时必须保留原图片目录。
+“禁漫官网”页只保存和展示项目维护的入口文本；裸域名保持原样，点击时通过 `QUrl.fromUserInput()` 与 `QDesktopServices.openUrl()` 交给系统默认浏览器。页面不使用 WebEngine，也不在加载时主动请求这些站点。
 
 ### Windows 脚本
 
@@ -103,6 +104,7 @@ UI 必须保持：
 - 右侧主区域透明背景，使用 QFluentWidgets 原生控件和卡片。
 - 青色强调色，当前建议 `#00c8d7`。
 - 卡片式信息分组，避免网页式大白底和黑色说明条。
+- “禁漫官网”等新增页面继续通过 `FluentWindow.addSubInterface()` 注册，使用 QFluentWidgets 内置图标、滚动区域、卡片和按钮，不手写另一套侧栏或网页容器。
 - 设置页类似 Windows 设置项：标题、说明、路径输入、按钮在同一 Fluent 卡片中。
 - 书库页以封面卡片网格展示作品，按作者分组。
 - 封面完整等比例显示，不裁剪、不截断。

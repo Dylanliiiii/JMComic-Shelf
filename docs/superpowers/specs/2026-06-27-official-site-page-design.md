@@ -30,8 +30,7 @@ JMComic Shelf 当前左侧导航包含“本地书库”“禁漫下载”“禁
    - 说明：`不支持日本/韩国路线`
    - `18comic.vip`
    - `18comic.ink`
-3. 东南亚路线
-   - 说明：`东南亚路线建议使用`
+3. 东南亚路线建议使用
    - `jmcomic-zzz.one`
    - `http://jmcomic-zzz.org`
 4. 大陆域名
