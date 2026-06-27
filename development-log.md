@@ -1,5 +1,38 @@
 ﻿# Development Log
 
+## Version 0.4.0 - 2026-06-28 02:13:18 +08:00
+
+### 修改范围
+
+- 发布桌面端“禁漫官网”功能版。
+- 将桌面端项目版本号从 `0.3.0` 更新为 `0.4.0`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `development-log.md`
+- `TASKS.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新正式版本基线为 `v0.3.0`。
+- 本次发布包含 `2026-06-27 19:50:12 +08:00` 开发记录中的新功能：新增“禁漫官网”导航页，通过 Fluent 分组卡片集中展示发布页、国际及地区分流域名、APP 下载和联系方式。
+- 官网地址点击后使用 `QUrl.fromUserInput()` 解析用户提供的原始文本，并由 `QDesktopServices.openUrl()` 交给系统默认浏览器；三个裸域名保持原样，不在页面数据中强制补写 `https://`。
+- 页面不引入 Qt WebEngine，也不在启动或打开页面时主动探测站点可用性，避免新增依赖和地区网络误判。
+- 本次属于用户可见新功能发布，因此按语义化版本从 `v0.3.0` 升级到 `v0.4.0`。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.4.0`，用于 PyAppify 自动更新链路识别新包版本；未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+- 已检查 README、`AGENTS.md`、项目专属 Skill、`docs/superpowers/specs/` 和 `docs/superpowers/plans/`：新增功能的用户说明、协作规则、设计和实施计划已在功能开发阶段同步，本次发版本身无需额外改动。
+- 当前项目继续使用 `pyappify.yml` 和 `.github/workflows/release.yml` 构建 Windows 包；未配置 CNB 镜像或同步 Action。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，72 项通过；输出仍只有既有 `zhconv` 与 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile src\jmcomic_shelf\app.py src\jmcomic_shelf\index_service.py src\jmcomic_shelf\download_service.py src\jmcomic_shelf\repair_service.py src\jmcomic_shelf\database.py src\jmcomic_shelf\delete_service.py src\jmcomic_shelf\detail_service.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\download_page.py src\jmcomic_shelf\ui\detail_page.py src\jmcomic_shelf\ui\settings_page.py src\jmcomic_shelf\ui\repair_page.py src\jmcomic_shelf\ui\official_site_page.py`，通过。
+- 已运行 `$env:PYTHONPATH='src'; py -3.13 -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.4.0`。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+- 已确认 `pyappify.yml`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+
 ## 2026-06-27 19:50:12 +08:00
 
 ### 修改范围
