@@ -1,5 +1,48 @@
 ﻿# Development Log
 
+## 2026-06-28 16:32:04 +08:00
+
+### 修改范围
+
+- 修复 PyAppify 自动更新后提示升级成功但仍运行旧桌面端代码的问题。
+- 将 PyAppify 启动入口从 pip console script 改为仓库源码入口。
+- 增加包装回归测试，并同步 README、AGENTS、项目专属 Skill、桌面端 spec 和 plan。
+
+### 涉及文件
+
+- `run-jmcomic-shelf.py`
+- `pyappify.yml`
+- `tests/test_jmcomic/test_shelf_packaging.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `.agents/skills/jmcomic-shelf-maintenance/SKILL.md`
+- `docs/superpowers/specs/2026-06-17-desktop-app-design.md`
+- `docs/superpowers/plans/2026-06-18-desktop-app-v1.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 根因复核：用户当前运行目录中 PyAppify 的 `repo/` 和 `working/` 已更新到 `v0.4.0`，但隔离 Python 环境里的 `site-packages/jmcomic_shelf` 仍是 `0.3.0`；日志显示 `Requirements are up to date. Skipping dependency sync.`，随后继续执行旧的 `python/Scripts/jmcomic-shelf.exe`。
+- 对照 `https://github.com/ok-oldking/pyappify` 源码后确认：PyAppify 更新 tag 后会刷新 `working/`，但只有 `requirements` 规格或相关内容变化时才同步 pip 依赖；如果 `main_script` 指向 pip 安装生成的 console script，就可能继续加载旧 `site-packages`。
+- 新增 `run-jmcomic-shelf.py` 作为 PyAppify 源码入口，启动时把当前工作目录的 `src` 放到 `sys.path` 最前，再调用 `jmcomic_shelf.app.main()`。
+- 将 `pyappify.yml` 的 `main_script` 从 `jmcomic-shelf` 改为 `run-jmcomic-shelf.py`；保留 `requirements: "."`，首次安装和依赖变更时仍由 pip 安装项目依赖。
+- 新增包装回归测试，要求 PyAppify release profile 使用源码入口、源码入口优先加载当前 `src`，并确认依赖安装仍从项目根目录执行。
+- 同步 README、英文 README、AGENTS、项目专属 Skill、桌面端设计文档和实施计划，明确不要把 PyAppify 入口改回 `jmcomic-shelf` console script。
+- 本次为普通 bugfix，未更新项目版本号，也未发布 Release；如需让现有已安装 `v0.4.0` 客户端自动获取修复，需要后续按发布规则准备 `v0.4.1` 等正式版本。
+
+### 验证情况
+
+- 已先运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_packaging -v`，确认新增测试因 `main_script` 仍为 `jmcomic-shelf` 且 `run-jmcomic-shelf.py` 不存在而失败。
+- 修复后已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_packaging -v`，7 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，75 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 文件 `ResourceWarning` 和 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile run-jmcomic-shelf.py src\\jmcomic_shelf\\app.py src\\jmcomic_shelf\\index_service.py src\\jmcomic_shelf\\download_service.py src\\jmcomic_shelf\\repair_service.py src\\jmcomic_shelf\\database.py src\\jmcomic_shelf\\delete_service.py src\\jmcomic_shelf\\detail_service.py src\\jmcomic_shelf\\ui\\main_window.py src\\jmcomic_shelf\\ui\\library_page.py src\\jmcomic_shelf\\ui\\download_page.py src\\jmcomic_shelf\\ui\\detail_page.py src\\jmcomic_shelf\\ui\\settings_page.py src\\jmcomic_shelf\\ui\\repair_page.py src\\jmcomic_shelf\\ui\\official_site_page.py`，通过。
+- 已运行 `rg` 检查 README、英文 README、AGENTS、项目专属 Skill、spec、plan、`pyappify.yml`、测试和入口脚本中的 PyAppify 入口说明，结果一致。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+
 ## Version 0.4.0 - 2026-06-28 02:13:18 +08:00
 
 ### 修改范围

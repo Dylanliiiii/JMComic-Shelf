@@ -31,7 +31,7 @@ Release builds are published on GitHub:
 
 - [JMComic Shelf Releases](https://github.com/Dylanliiiii/JMComic-Shelf/releases)
 
-The desktop release is packaged with [ok-oldking/pyappify](https://github.com/ok-oldking/pyappify). The PyAppify launcher installs the app from GitHub tags, prepares an isolated Python environment, and uses Git/tag based updates for later launches.
+The desktop release is packaged with [ok-oldking/pyappify](https://github.com/ok-oldking/pyappify). The PyAppify launcher installs the app from GitHub tags, prepares an isolated Python environment, and uses Git/tag based updates for later launches. The PyAppify entry point is `run-jmcomic-shelf.py`, which prefers the updated `working/src` tree over stale installed `site-packages` code.
 
 ### Source Checkout
 
@@ -77,6 +77,7 @@ Downloaded images, PDF files, and the human-readable `catalog.md` remain in the 
 Packaging files:
 
 - `pyappify.yml`
+- `run-jmcomic-shelf.py`
 - `.github/workflows/release.yml`
 - `icons/icon.png`
 - `icons/icon.ico`

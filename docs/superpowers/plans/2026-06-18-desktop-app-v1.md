@@ -17,7 +17,8 @@
 - `repair_service.py`：扫描历史残留图片目录，补全缺失 PDF，成功后清理原图片目录，并复用重建索引同步 SQLite 和 `catalog.md`。
 - `ui/`：本地书库、禁漫下载、禁漫预览、书库修复、禁漫官网、设置页面。
 - `ui/official_site_page.py`：分组展示官方入口，并把点击交给系统默认浏览器。
-- `pyappify.yml`：PyAppify 桌面版发布配置。
+- `pyappify.yml`：PyAppify 桌面版发布配置，`main_script` 指向 `run-jmcomic-shelf.py`。
+- `run-jmcomic-shelf.py`：PyAppify 源码入口，优先加载当前 `working/src` 后启动桌面端。
 - `.github/workflows/release.yml`：`v*` tag 触发的 GitHub Release 打包流程。
 
 ## 必须保持的 UI 方向
@@ -96,6 +97,7 @@
 - 旧的 `download-jmcomic.bat` 和 `view-jmcomic.bat` 已由桌面端入口替代，不再保留。
 - 保留 `start-jmcomic-shelf.bat` 作为源码仓库启动入口。
 - `assets/icon.png` 是桌面端软件图标；`icons/icon.png` 和 `icons/icon.ico` 供 PyAppify 打包使用。
+- PyAppify 入口保持为 `run-jmcomic-shelf.py`，不要改回 `jmcomic-shelf` console script，避免自动更新后继续使用旧安装包代码。
 - 正式 release 使用 `vMAJOR.MINOR.PATCH`，例如 `v0.1.0`。
 - 推送 `v*` tag 后由 GitHub Actions 调用 `ok-oldking/pyappify-action` 构建 Windows 包并上传到 GitHub Release。
 - 暂不配置 CNB 镜像或同步 Action。

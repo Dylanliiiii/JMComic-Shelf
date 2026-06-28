@@ -162,6 +162,12 @@ README 应保持：
 
 新增功能或调整桌面端用户可见行为时，README 应同步描述用户能看到和使用的能力；如果只是内部实现细节、测试修复或不影响使用方式的整理，可以在开发记录中说明无需更新 README 的判断。
 
+## PyAppify 自动更新入口
+
+- `pyappify.yml` 的 `main_script` 应保持为 `run-jmcomic-shelf.py`。
+- `run-jmcomic-shelf.py` 必须把仓库工作目录下的 `src` 放到 `sys.path` 最前，再调用 `jmcomic_shelf.app.main()`。
+- 不要把 PyAppify 入口改回 pip 安装生成的 `jmcomic-shelf` console script；PyAppify 在依赖规格未变化时可能跳过 dependency sync，如果继续启动旧 console script，就会出现自动更新提示成功但仍运行旧 `site-packages` 代码。
+
 ## 验证清单
 
 根据改动范围选择验证。

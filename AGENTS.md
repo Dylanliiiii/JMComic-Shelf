@@ -226,6 +226,7 @@ python -m py_compile src\jmcomic\jm_plugin.py
 - 正式发布时，需要在 `development-log.md` 顶部新增 `## Version x.x.x - YYYY-MM-DD HH:mm:ss +08:00` 记录，并在记录中写明用于确认版本基线的远端 tag 查询结果。
 - Release 正文应从上一次带 `Version` 的发布记录之后，到本次发布记录之间提炼重点，不应过长；小型格式、文案和布局调整用概括性描述即可。
 - 桌面应用打包使用 `pyappify.yml` 和 `.github/workflows/release.yml`，推送 `v*` tag 后由 GitHub Actions 调用 `ok-oldking/pyappify-action` 构建 Windows 包并上传到 GitHub Release。
+- PyAppify 的 `main_script` 必须保持为仓库内 `run-jmcomic-shelf.py`，由该脚本优先加载当前 `working/src` 源码；不要改回 pip 安装生成的 `jmcomic-shelf` console script，否则依赖未变化时自动更新可能继续运行旧 `site-packages` 代码。
 - 当前不配置 CNB 镜像或对应同步 Action，除非用户未来明确要求。
 - 如果用户表达“更新一下”“更新 GitHub”等，按普通 commit + push 处理。
 - 提交前确认 `jmcomic-option.yml` 仍是 ignored，且没有账号密码进入 diff。

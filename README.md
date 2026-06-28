@@ -55,7 +55,7 @@ JMComic Shelf 在此基础上面向个人本地收藏工作流做了整理：
 
 - [JMComic Shelf Releases](https://github.com/Dylanliiiii/JMComic-Shelf/releases)
 
-Release 版使用 PyAppify 打包。PyAppify launcher 会从 GitHub 仓库和版本标签安装应用代码、准备隔离 Python 环境，并在后续启动时基于 Git/tag 更新应用。
+Release 版使用 PyAppify 打包。PyAppify launcher 会从 GitHub 仓库和版本标签安装应用代码、准备隔离 Python 环境，并在后续启动时基于 Git/tag 更新应用。当前 PyAppify 入口是仓库内的 `run-jmcomic-shelf.py`，该脚本会优先从已更新的 `working/src` 运行桌面端源码，避免自动更新后继续加载旧的 `site-packages` 入口。
 
 当前打包配置位于：
 
@@ -185,7 +185,8 @@ D:/path/to/JMComic/catalog.md
 
 本项目的桌面应用发布使用 PyAppify：
 
-- `pyappify.yml` 定义应用名、Git 仓库、入口命令和 Python 版本。
+- `pyappify.yml` 定义应用名、Git 仓库、入口脚本和 Python 版本；`main_script` 应保持为 `run-jmcomic-shelf.py`，不要改回 pip 安装生成的 `jmcomic-shelf` console script。
+- `run-jmcomic-shelf.py` 是 PyAppify 运行入口，负责把当前工作目录的 `src` 放到 `sys.path` 最前，再启动 `jmcomic_shelf.app.main()`。
 - `icons/` 预留 PyAppify 打包图标，当前由 `assets/icon.png` 生成。
 - `.github/workflows/release.yml` 在推送 `v*` tag 时构建 Windows 包并上传到 GitHub Release。
 
