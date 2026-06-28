@@ -1,5 +1,35 @@
 ﻿# Development Log
 
+## Version 0.4.1 - 2026-06-28 17:04:53 +08:00
+
+### 修改范围
+
+- 发布 PyAppify 自动更新入口修复版。
+- 将桌面端项目版本号从 `0.4.0` 更新为 `0.4.1`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `development-log.md`
+
+### 具体内容
+
+- 发布前已按项目规则运行 `git ls-remote --tags origin`，确认当前 GitHub 远端最新正式版本基线为 `v0.4.0`。
+- 本次发布包含 `2026-06-28 16:32:04 +08:00` 开发记录中的修复：PyAppify 入口改为仓库内 `run-jmcomic-shelf.py`，优先从当前 `working/src` 启动，避免自动更新后继续运行旧 `site-packages` 代码。
+- 本次属于修复版，不新增业务功能，因此按语义化版本从 `v0.4.0` 升级到 `v0.4.1`。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.4.1`，用于 PyAppify 自动更新链路识别修复版；未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+- 已确认 `pyappify.yml` 的 `main_script` 为 `run-jmcomic-shelf.py`，并确认 `run-jmcomic-shelf.py`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+- 当前项目继续不配置 CNB 镜像或同步 Action。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_packaging -v`，7 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，75 项通过；输出仍包含既有 QFluentWidgets Pro 提示、`zhconv` 文件 `ResourceWarning` 和 Qt 退出阶段 `ResourceWarning`，不影响测试结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile run-jmcomic-shelf.py src\\jmcomic_shelf\\app.py src\\jmcomic_shelf\\index_service.py src\\jmcomic_shelf\\download_service.py src\\jmcomic_shelf\\repair_service.py src\\jmcomic_shelf\\database.py src\\jmcomic_shelf\\delete_service.py src\\jmcomic_shelf\\detail_service.py src\\jmcomic_shelf\\ui\\main_window.py src\\jmcomic_shelf\\ui\\library_page.py src\\jmcomic_shelf\\ui\\download_page.py src\\jmcomic_shelf\\ui\\detail_page.py src\\jmcomic_shelf\\ui\\settings_page.py src\\jmcomic_shelf\\ui\\repair_page.py src\\jmcomic_shelf\\ui\\official_site_page.py`，通过。
+- 已运行 `$env:PYTHONPATH='src'; py -3.13 -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.4.1`。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+
 ## 2026-06-28 16:32:04 +08:00
 
 ### 修改范围
