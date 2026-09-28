@@ -5,6 +5,32 @@ from unittest.mock import patch
 
 class TestShelfLibraryPage(unittest.TestCase):
 
+    def test_library_text_labels_allow_selection_and_batch_share_buttons_are_available(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
+        from qfluentwidgets import PrimaryPushButton
+        from jmcomic_shelf.models import AlbumRecord
+        from jmcomic_shelf.ui.library_page import CoverCard, LibraryPage
+
+        app = QApplication.instance() or QApplication([])
+        page = LibraryPage()
+        page.records = [AlbumRecord('211899', '作品A', authors=['作者A'])]
+        page.render_records()
+        card = next(card for card in page.findChildren(CoverCard) if card.record.title == '作品A')
+        self.assertIsNotNone(card)
+        selectable = Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
+        self.assertEqual(card.caption.textInteractionFlags(), selectable)
+        self.assertEqual(card.caption.text(), 'JM211899 作品A')
+        author_labels = [label for label in page.findChildren(type(page.content_layout.itemAt(0).widget())) if '作者A' in label.text()]
+        self.assertTrue(author_labels)
+        self.assertEqual(author_labels[0].textInteractionFlags(), selectable)
+        self.assertIsInstance(page.copy_button, PrimaryPushButton)
+        self.assertEqual(page.copy_button.text(), '复制 PDF')
+        self.assertEqual(page.zip_button.text(), '打包 ZIP')
+        self.assertIsNotNone(app)
+
     def test_library_page_does_not_crash_when_database_is_unavailable(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 

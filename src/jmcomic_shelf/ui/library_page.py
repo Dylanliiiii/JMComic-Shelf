@@ -1,8 +1,9 @@
 import os
+from datetime import datetime
 
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal, Slot
-from PySide6.QtGui import QAction, QFontMetrics, QPixmap
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+from PySide6.QtCore import QMimeData, QObject, Qt, QThread, QTimer, Signal, Slot
+from PySide6.QtGui import QAction, QGuiApplication, QPixmap
+from PySide6.QtWidgets import QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
 from jmcomic_shelf.database import ShelfDatabase
@@ -12,6 +13,7 @@ from jmcomic_shelf.index_service import group_by_author, rebuild_index_from_down
 from jmcomic_shelf.path_utils import path_exists
 from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_settings_path
 from jmcomic_shelf.settings import ShelfSettings
+from jmcomic_shelf.share_service import create_pdf_archive, file_urls
 
 from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
@@ -66,10 +68,12 @@ class CoverCard(CardWidget):
         self._load_cover()
 
         caption = f'JM{record.jm_id} {record.title}'
-        metrics = QFontMetrics(self.font())
-        self.caption = CaptionLabel(metrics.elidedText(caption, Qt.TextElideMode.ElideRight, self.cover_width), self)
+        self.caption = CaptionLabel(caption, self)
         self.caption.setFixedWidth(self.cover_width)
         self.caption.setToolTip(caption)
+        self.caption.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
+        )
 
         layout.addWidget(self.cover)
         layout.addWidget(self.caption)
@@ -223,11 +227,15 @@ class LibraryPage(QWidget):
         self.select_all_button = PushButton('全选', self)
         self.invert_button = PushButton('反选', self)
         self.clear_selection_button = PushButton('取消全选', self)
+        self.copy_button = PrimaryPushButton('复制 PDF', self)
+        self.zip_button = PushButton('打包 ZIP', self)
         self.delete_button = PrimaryPushButton('删除选中', self)
         self.exit_batch_button = PushButton('退出批量管理', self)
         self.select_all_button.clicked.connect(self.select_all)
         self.invert_button.clicked.connect(self.invert_selection)
         self.clear_selection_button.clicked.connect(self.clear_selection)
+        self.copy_button.clicked.connect(self.copy_selected_pdfs)
+        self.zip_button.clicked.connect(self.archive_selected_pdfs)
         self.delete_button.clicked.connect(self.delete_selected)
         self.exit_batch_button.clicked.connect(lambda: self.set_batch_mode(False))
         self.batch_bar.addWidget(self.selected_label)
@@ -235,6 +243,8 @@ class LibraryPage(QWidget):
         self.batch_bar.addWidget(self.select_all_button)
         self.batch_bar.addWidget(self.invert_button)
         self.batch_bar.addWidget(self.clear_selection_button)
+        self.batch_bar.addWidget(self.copy_button)
+        self.batch_bar.addWidget(self.zip_button)
         self.batch_bar.addWidget(self.delete_button)
         self.batch_bar.addWidget(self.exit_batch_button)
         self.batch_host = QWidget(self)
@@ -383,7 +393,11 @@ class LibraryPage(QWidget):
         columns = self._column_count()
         self.current_columns = columns
         for author, records in group_by_author(self.records).items():
-            self.content_layout.addWidget(SubtitleLabel(f'{author} · {len(records)} 本', self.content))
+            author_label = SubtitleLabel(f'{author} · {len(records)} 本', self.content)
+            author_label.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
+            )
+            self.content_layout.addWidget(author_label)
             grid_host = QWidget(self.content)
             grid_host.setStyleSheet('background: transparent;')
             grid = QGridLayout(grid_host)
@@ -596,6 +610,8 @@ class LibraryPage(QWidget):
         count = len(self.selected_ids)
         self.selected_label.setText(f'已选 {count} 本')
         self.delete_button.setEnabled(count > 0)
+        self.copy_button.setEnabled(count > 0)
+        self.zip_button.setEnabled(count > 0)
         has_records = bool(self.records)
         self.select_all_button.setEnabled(has_records)
         self.invert_button.setEnabled(has_records)
@@ -631,6 +647,45 @@ class LibraryPage(QWidget):
         if result.errors:
             messages.append('部分文件删除失败：' + '；'.join(result.errors[:3]))
         self.action_status.setText(' '.join(messages))
+        self.action_status.setVisible(True)
+
+    def _selected_records(self):
+        return [record for record in self.records if record.jm_id in self.selected_ids]
+
+    def _share_status(self, action: str, count: int, missing: list[str]):
+        message = f'{action} {count} 个 PDF。'
+        if missing:
+            message += f'已跳过 {len(missing)} 本缺少 PDF 的作品。'
+        self.action_status.setText(message)
+        self.action_status.setVisible(True)
+
+    def copy_selected_pdfs(self):
+        records = self._selected_records()
+        urls, missing = file_urls(records)
+        if not urls:
+            self._share_status('没有可复制的', 0, missing)
+            return
+        mime_data = QMimeData()
+        mime_data.setUrls(urls)
+        QGuiApplication.clipboard().setMimeData(mime_data)
+        self._share_status('已复制', len(urls), missing)
+
+    def archive_selected_pdfs(self):
+        records = self._selected_records()
+        urls, missing = file_urls(records)
+        if not urls:
+            self._share_status('没有可打包的', 0, missing)
+            return
+        settings = ShelfSettings.load(get_settings_path())
+        base_dir = settings.download_dir or settings.app_data_dir or os.getcwd()
+        filename = f'手机阅读-{datetime.now():%Y%m%d-%H%M%S}.zip'
+        output_path, _ = QFileDialog.getSaveFileName(
+            self, '保存漫画 ZIP', os.path.join(base_dir, filename), 'ZIP 文件 (*.zip)'
+        )
+        if not output_path:
+            return
+        count, missing = create_pdf_archive(records, output_path)
+        self.action_status.setText(f'已打包 {count} 个 PDF：{output_path}' + (f'；已跳过 {len(missing)} 本缺少 PDF 的作品。' if missing else ''))
         self.action_status.setVisible(True)
 
     def _clear_content(self):

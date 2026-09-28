@@ -1,4 +1,40 @@
-﻿# Development Log
+## 2026-09-28 18:25:26 +08:00
+
+### 修改范围
+
+- 增加书库文本选中复制和批量 PDF 传输能力。
+- 增加 ZIP 打包备用方式，并同步桌面端说明文档。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/share_service.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_share_service.py`
+- `tests/test_jmcomic/test_shelf_library_page.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-09-28-library-sharing-design.md`
+- `docs/superpowers/plans/2026-09-28-library-sharing.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 作者分组标题和作品卡片底部的 JM 号/作品名启用鼠标与键盘选中复制。
+- 批量管理默认提供“复制 PDF”，将存在的 PDF 以 Windows 文件剪贴板格式写入系统剪贴板，用户可在电脑 QQ 中按 `Ctrl+V` 发送。
+- 批量管理同时提供“打包 ZIP”，自动清理 ZIP 内文件名中的非法字符，并跳过缺失 PDF 后在状态栏提示。
+- 新增可测试的分享服务，负责有效 PDF 筛选、文件 URL 构造和 ZIP 生成；不自动操控 QQ 或调用网络接口。
+- 已同步 README、英文 README、AGENTS、项目专属 Skill、桌面端 spec 和 plan；本次为普通功能更新，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已先运行分享服务测试，确认新模块不存在时按预期失败。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_share_service -v`，3 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，79 项通过；输出仍有既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 ResourceWarning，不影响结果。
+
+# Development Log
 
 ## Version 0.4.1 - 2026-06-28 17:04:53 +08:00
 

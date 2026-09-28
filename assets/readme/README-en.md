@@ -51,6 +51,7 @@ jmcomic-shelf
 ## Desktop Features
 
 - Local library browsing backed by SQLite.
+- Library author and work titles can be selected and copied; batch management can copy selected PDFs to the Windows file clipboard for QQ `Ctrl+V`, or package them as a ZIP.
 - Rebuildable index from the current download directory.
 - Search by JM ID, author, or tag.
 - Multi-tag category filtering.
