@@ -1,3 +1,36 @@
+# Development Log
+
+## Version 0.5.0 - 2026-10-15 01:19:02 +08:00
+
+### 修改范围
+
+- 发布桌面端书库分享能力版本。
+- 将桌面端项目版本号从 `0.4.1` 更新为 `0.5.0`。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/__init__.py`
+- `development-log.md`
+- `TASKS.md`
+
+### 具体内容
+
+- 发布前已运行 `git ls-remote --tags origin`，确认当前仓库 `origin` 远端最新正式 tag 为 `v0.4.1`（`e776938`）。
+- 已用 `gh release list -R Dylanliiiii/JMComic-Shelf` 复核 GitHub Releases 最新版本同样为 `v0.4.1`。注意：不带 `-R` 的 `gh` 命令会解析到上游 `hect0x7/JMComic-Crawler-Python`（该仓库 Releases 已到 `v2.7.9`），不能作为本项目版本基线。
+- 自 `v0.4.1` 以来只有一个待发布提交 `ff63d3b feat: add library sharing actions`，包含用户可见的新功能：作者分组标题、JM 号和作品名支持鼠标/键盘选中复制；批量管理默认“复制 PDF”写入 Windows 文件剪贴板，便于在电脑 QQ 中 `Ctrl+V` 发送；批量管理提供“打包 ZIP”备用方式，自动清理非法文件名字符并跳过缺失 PDF；新增可测试的 `share_service` 模块。
+- 本次属于新增用户可见功能的次版本升级，按语义化版本从 `v0.4.1` 升级到 `v0.5.0`。
+- 同步更新 `src/jmcomic_shelf/__init__.py` 的桌面端版本号为 `0.5.0`，供 PyAppify 自动更新链路识别新版本；未修改 `src/jmcomic/__init__.py` 的上游核心库版本号。
+- 已确认 `pyappify.yml` 的 `main_script` 仍为 `run-jmcomic-shelf.py`，并确认 `run-jmcomic-shelf.py`、`.github/workflows/release.yml`、`icons/icon.png` 和 `icons/icon.ico` 均存在。
+- 顺带修正 `development-log.md` 结构：上一次日常条目（`2026-09-28 18:25:26 +08:00`）被误插到 `# Development Log` 标题之上，本次把它移回标题下方，恢复“标题 + 最新条目在前”的原有格式。
+- 当前项目继续不配置 CNB 镜像或同步 Action。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_packaging -v`，7 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，79 项通过；输出仍有既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`，不影响结果。
+- 已运行 `$env:PYTHONPATH='src'; py -3.13 -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.5.0`。
+- 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
+
 ## 2026-09-28 18:25:26 +08:00
 
 ### 修改范围
@@ -33,8 +66,6 @@
 - 已先运行分享服务测试，确认新模块不存在时按预期失败。
 - 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_share_service -v`，3 项通过。
 - 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，79 项通过；输出仍有既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 ResourceWarning，不影响结果。
-
-# Development Log
 
 ## Version 0.4.1 - 2026-06-28 17:04:53 +08:00
 
