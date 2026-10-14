@@ -31,6 +31,15 @@
 - 已运行 `$env:PYTHONPATH='src'; py -3.13 -c "import jmcomic_shelf; print(jmcomic_shelf.__version__)"`，输出 `0.5.0`。
 - 已运行 `git check-ignore -v jmcomic-option.yml`，确认真实配置文件仍由 `.gitignore` 忽略。
 
+### 发布结果
+
+- 已提交 `1ad7176 Release v0.5.0` 并 push 到 `origin master`，随后创建并推送附注 tag `v0.5.0`（tag 对象 `71edd8`，指向提交 `1ad7176`）。
+- GitHub Actions 工作流 `Release`（run `38605850230`）构建成功，用时约 13 分 43 秒，发布 `https://github.com/Dylanliiiii/JMComic-Shelf/releases/tag/v0.5.0`。
+- Release 产物与 `v0.4.1` 一致：`JMComic-Shelf-win32-online-setup.exe`、`JMComic-Shelf-win32-release-setup.exe`、`JMComic-Shelf-win32.zip`、`win32_sha256.txt`。
+- 已按发布规则用 `gh release edit` 把 Release 标题改为 `JMComic Shelf v0.5.0`，正文替换为本次发布要点，不再是工作流里的通用英文占位文本。
+- 已知情况：上游继承的 `download.yml`（工作流名“下载JM本子”）也监听 `v*` tag，因未配置 `JM_USERNAME` / `JM_PASSWORD` 等 secret 而失败，与本项目桌面端发布无关；本次未修改该上游工作流。
+- 发布后 `master` 比 `v0.5.0` tag 多一个清理 `TASKS.md` 的提交，与历史发布流程一致。
+
 ## 2026-09-28 18:25:26 +08:00
 
 ### 修改范围
