@@ -220,3 +220,46 @@ class TestShelfGlassCover(unittest.TestCase):
         self.assertFalse(idle.isNull())
         self.assertNotEqual(bytes(idle.constBits()), bytes(hovered.constBits()))
         self.assertIsNotNone(app)
+
+    def test_cover_card_paints_no_background_frame(self):
+        app, view = self._view()
+        from jmcomic_shelf.models import AlbumRecord
+        from jmcomic_shelf.ui.library_page import COVER_CARD_STYLE, CoverCard
+
+        card = CoverCard(AlbumRecord('211899', '作品A'))
+        card.show()
+        app.processEvents()
+        image = card.grab().toImage()
+
+        self.assertIn('background: transparent', COVER_CARD_STYLE)
+        self.assertIn('border: none', COVER_CARD_STYLE)
+        for point in (
+            (card.width() // 2, 1),
+            (1, card.height() // 2),
+            (card.width() - 2, card.height() // 2),
+            (card.width() // 2, card.height() - 2),
+        ):
+            self.assertEqual(image.pixelColor(*point).alpha(), 0, point)
+        self.assertIsNotNone(app)
+
+    def test_selected_card_draws_accent_border_instead_of_frame(self):
+        app, view = self._view()
+        from jmcomic_shelf.models import AlbumRecord
+        from jmcomic_shelf.ui.library_page import CoverCard
+
+        card = CoverCard(AlbumRecord('211899', '作品A'))
+        card.show()
+        app.processEvents()
+
+        card.set_selected(True)
+        app.processEvents()
+        selected = card.grab().toImage()
+
+        color = selected.pixelColor(1, card.height() // 2)
+        self.assertGreaterEqual(color.green(), 150)
+        self.assertGreaterEqual(color.blue(), 150)
+
+        card.set_selected(False)
+        app.processEvents()
+        self.assertEqual(card.grab().toImage().pixelColor(1, card.height() // 2).alpha(), 0)
+        self.assertIsNotNone(app)

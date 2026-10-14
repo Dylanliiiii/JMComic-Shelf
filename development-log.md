@@ -1,5 +1,37 @@
 # Development Log
 
+## 2026-10-15 02:12:22 +08:00
+
+### 修改范围
+
+- 去掉书库封面卡片外层的固定底板和实线外框。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_glass_cover.py`
+- `docs/superpowers/specs/2026-10-15-cover-liquid-glass-design.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 用户反馈：悬停倾斜时卡片外侧仍有一个固定的实线框，不跟着倾斜，观感割裂。
+- 复核发现外框有两个来源：一是 QFluentWidgets `CardWidget.paintEvent` 自己用 `QPainter` 画的圆角底板和上下描边，样式表改不掉；二是 `styles.py` 的 `control_style()` 给所有 `CardWidget` 加了 `background + 1px border`，这层由 Qt 的样式表背景绘制流程处理，跳过 `paintEvent` 也不会消失。
+- 处理方式：`CoverCard.paintEvent` 不再调用 `CardWidget.paintEvent`，卡片自身改为完全透明；同时给封面卡片加上 `COVER_CARD_STYLE`（`CoverCard { background: transparent; border: none; }`）覆盖页面样式表里的 `CardWidget` 规则。
+- 批量管理的选中反馈改为自绘：`_draw_selection` 在卡片内缘画 2px 青色 `#00c8d7` 描边加一层极淡的青色底，未选中时卡片完全透明，选中状态不再依赖样式表。
+- 用完整 `LibraryPage`（带真实页面样式表和 `control_style()`）离屏渲染并逐像素扫描，确认卡片四边 alpha 全为 0、卡片区域与页面背景一致；选中态左边框为 `(0,200,215)`。
+- README 和中英文说明描述的是功能与观感，不涉及卡片是否有外框，判断无需更新；spec 和项目规则补充了“封面卡片不带底板外框”的约束，避免以后又被加回去。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_glass_cover -v`，15 项通过（新增 2 项覆盖无外框和选中描边）。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，94 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile src\jmcomic_shelf\ui\glass_cover.py src\jmcomic_shelf\ui\library_page.py`，通过。
+- 已重启源码桌面端确认窗口正常打开；本次为普通功能调整，未更新项目版本号，也未发布 Release。
+
 ## 2026-10-15 02:02:37 +08:00
 
 ### 修改范围

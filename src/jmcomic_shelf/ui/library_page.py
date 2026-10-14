@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from PySide6.QtCore import QMimeData, QObject, QRectF, Qt, QThread, QTimer, Signal, Slot
-from PySide6.QtGui import QAction, QGuiApplication, QPainter
+from PySide6.QtGui import QAction, QColor, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QFileDialog, QFrame, QGridLayout, QHBoxLayout, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
@@ -19,6 +19,7 @@ from .glass_cover import TILE_PADDING, GlassCoverView, perspective_transform
 from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
 CAPTION_HIDDEN_RULE = 'FluentLabelBase { color: transparent; }'
+COVER_CARD_STYLE = 'CoverCard { background: transparent; border: none; }'
 
 
 class IndexSyncWorker(QObject):
@@ -46,6 +47,9 @@ class CoverCard(CardWidget):
     selection_changed = Signal(str, bool)
     cover_width = 150
     card_width = 178
+    border_width = 2
+    border_radius = 10
+    selection_color = '#00c8d7'
 
     def __init__(self, record, parent=None):
         super().__init__(parent)
@@ -54,6 +58,9 @@ class CoverCard(CardWidget):
         self.selected = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedWidth(self.card_width)
+        # 页面样式表会给所有 CardWidget 加底板和描边；封面卡片不要这两样，
+        # 否则悬停倾斜时外面会出现一个不跟着动的方框。
+        self.setStyleSheet(COVER_CARD_STYLE)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -103,17 +110,36 @@ class CoverCard(CardWidget):
         )
 
     def paintEvent(self, event):
-        super().paintEvent(event)
-        hover = self.cover.hoverProgress if hasattr(self, 'cover') else 0.0
-        if hover <= 0.001:
-            return
+        # 故意不调用 CardWidget.paintEvent：封面卡片不要固定底板和外框，
+        # 否则悬停倾斜时会出现一个不跟着动的方框。
         painter = QPainter(self)
         painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
+        if self.selected:
+            self._draw_selection(painter)
+        if not hasattr(self, 'cover'):
+            painter.end()
+            return
+        hover = self.cover.hoverProgress
+        if hover <= 0.001:
+            painter.end()
+            return
         painter.setTransform(perspective_transform(self.card_tile_rect(), self.cover.pointer(), hover))
         painter.setFont(self.caption.font())
         painter.setPen(self.caption.darkColor if isDarkTheme() else self.caption.lightColor)
         painter.drawText(QRectF(self.caption.geometry()), self.caption.alignment(), self.caption.text())
         painter.end()
+
+    def _draw_selection(self, painter: QPainter):
+        color = QColor(self.selection_color)
+        rect = QRectF(self.rect()).adjusted(1.0, 1.0, -1.0, -1.0)
+        fill = QColor(color)
+        fill.setAlpha(28)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawRoundedRect(rect, self.border_radius, self.border_radius)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(color, self.border_width))
+        painter.drawRoundedRect(rect, self.border_radius, self.border_radius)
 
     def set_selection_mode(self, enabled: bool):
         self.selection_mode = enabled
@@ -124,10 +150,7 @@ class CoverCard(CardWidget):
     def set_selected(self, selected: bool, emit: bool = True):
         self.selected = selected
         self.checkbox.setChecked(selected)
-        if selected:
-            self.setStyleSheet('CoverCard { border: 1px solid #00c8d7; border-radius: 8px; }')
-        else:
-            self.setStyleSheet('')
+        self.update()
         if emit:
             self.selection_changed.emit(self.record.jm_id, selected)
 
