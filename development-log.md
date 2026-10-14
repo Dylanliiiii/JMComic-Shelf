@@ -1,5 +1,45 @@
 # Development Log
 
+## 2026-10-15 02:02:37 +08:00
+
+### 修改范围
+
+- 本地书库封面新增液态玻璃悬停效果和随鼠标的透视倾斜。
+- 作品标题文字跟封面一起倾斜，指针移开后恢复为可选中复制的平面文字。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/glass_cover.py`
+- `src/jmcomic_shelf/ui/library_page.py`
+- `tests/test_jmcomic/test_shelf_glass_cover.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-10-15-cover-liquid-glass-design.md`
+- `docs/superpowers/plans/2026-10-15-cover-liquid-glass.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 用户提供了 Steam 库风格的悬停截图作为风格参考，只借鉴“浮起 + 随鼠标倾斜 + 玻璃质感”，不引入相邻卡片变暗和侧边信息面板；确认效果先只作用于书库页封面卡片。
+- 设计阶段确认三个取舍：Qt 里父控件倾斜不会带动子控件，所以先在三种路线里选了“自绘封面瓦片”；玻璃质感用叠层与高光模拟，不做真实背景模糊；方向经两张对比图确认采用“光标所在角向屏幕内侧下压”。
+- 用户随后追加要求：标题文字也要跟着整体卡片一起倾斜。实现方式是抽出模块级 `dip_quad` / `perspective_transform`，`CoverCard` 复用与封面瓦片完全相同的单应变换绘制标题，因此文字和封面处在同一平面上；悬停期间把真实 `CaptionLabel` 的文字颜色置为透明避免重影，指针移开后恢复原样式，标题的选中复制能力不变。
+- 新增 `GlassCoverView`：控件 168×228（封面 150×210 + 四周 9px 绘制留白），圆角封面缓存为 `QPixmap`（仅尺寸、主题或封面变化时重建），玻璃叠层、跟随指针的径向高光、青色 `#00c8d7` 内缘辉光和柔和投影只在悬停时绘制。
+- 参数集中在 `glass_cover.py` 顶部：最大倾角 6°、`EYE_DISTANCE` 240、悬停放大 1.03、进场 160ms `OutCubic`、出场 220ms `OutCubic`、指针追随 140ms `OutQuad`，方向常量 `TILT_DIRECTION` / `TILT_Y_DIRECTION` 可整体翻转。
+- `CoverCard` 的内边距从 10px 改为 5px、间距改为 4px，使瓦片在 178px 宽的卡片中居中；卡片背景框保持平面，倾斜只作用于封面与标题所在的平面。
+- 性能上只有被悬停的那一张卡片重绘，其余卡片完全静态；不引入第三方依赖，不新增设置项。
+- 已同步 README、英文 README、AGENTS、项目专属 Skill、spec 和 plan；本次为普通功能更新，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_glass_cover -v`，13 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，92 项通过；输出仍有既有 QFluentWidgets Pro 提示、`zhconv` 和 Qt 退出阶段 `ResourceWarning`，不影响结果。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile src\jmcomic_shelf\ui\glass_cover.py src\jmcomic_shelf\ui\library_page.py src\jmcomic_shelf\ui\main_window.py src\jmcomic_shelf\ui\detail_page.py`，通过。
+- 已用离屏脚本渲染常态、半悬停、四个角悬停和方向翻转共 7 张效果图，人工核对倾斜方向、玻璃高光、投影和标题随动是否一致；验证用合成封面，不涉及本地真实漫画封面。
+- 已运行 `git diff --check`，无空白错误，仅有 Windows 换行提示。
+
 ## Version 0.5.0 - 2026-10-15 01:19:02 +08:00
 
 ### 修改范围

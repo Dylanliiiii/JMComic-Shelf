@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
 
-from PySide6.QtCore import QMimeData, QObject, Qt, QThread, QTimer, Signal, Slot
-from PySide6.QtGui import QAction, QGuiApplication, QPixmap
-from PySide6.QtWidgets import QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+from PySide6.QtCore import QMimeData, QObject, QRectF, Qt, QThread, QTimer, Signal, Slot
+from PySide6.QtGui import QAction, QGuiApplication, QPainter
+from PySide6.QtWidgets import QFileDialog, QFrame, QGridLayout, QHBoxLayout, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
 from jmcomic_shelf.database import ShelfDatabase
@@ -15,7 +15,10 @@ from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_sett
 from jmcomic_shelf.settings import ShelfSettings
 from jmcomic_shelf.share_service import create_pdf_archive, file_urls
 
+from .glass_cover import TILE_PADDING, GlassCoverView, perspective_transform
 from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
+
+CAPTION_HIDDEN_RULE = 'FluentLabelBase { color: transparent; }'
 
 
 class IndexSyncWorker(QObject):
@@ -53,18 +56,15 @@ class CoverCard(CardWidget):
         self.setFixedWidth(self.card_width)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(8)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(4)
 
         self.checkbox = CheckBox(self)
         self.checkbox.setVisible(False)
         self.checkbox.clicked.connect(self.toggle_selected)
         layout.addWidget(self.checkbox, 0, Qt.AlignmentFlag.AlignLeft)
 
-        self.cover = QLabel(self)
-        self.cover.setFixedSize(self.cover_width, 210)
-        self.cover.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.cover.setStyleSheet('border-radius: 6px;')
+        self.cover = GlassCoverView(self)
         self._load_cover()
 
         caption = f'JM{record.jm_id} {record.title}'
@@ -74,9 +74,46 @@ class CoverCard(CardWidget):
         self.caption.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
         )
+        self._caption_style = self.caption.styleSheet()
+        self._caption_hidden = False
+        self.cover.view_changed.connect(self.on_cover_view_changed)
 
         layout.addWidget(self.cover)
         layout.addWidget(self.caption)
+
+    def on_cover_view_changed(self):
+        """悬停时隐藏平面标题，改为随封面一起透视倾斜地绘制。"""
+        self.set_caption_hidden(self.cover.hoverProgress > 0.001)
+        self.update()
+
+    def set_caption_hidden(self, hidden: bool):
+        if hidden == self._caption_hidden:
+            return
+        self._caption_hidden = hidden
+        if hidden:
+            self.caption.setStyleSheet(self._caption_style + '\n' + CAPTION_HIDDEN_RULE)
+        else:
+            self.caption.setStyleSheet(self._caption_style)
+
+    def card_tile_rect(self):
+        """封面瓦片在卡片坐标系里的矩形，与外层瓦片控件的绘制范围一致。"""
+        geometry = self.cover.geometry()
+        return QRectF(geometry).adjusted(
+            TILE_PADDING, TILE_PADDING, -TILE_PADDING, -TILE_PADDING
+        )
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        hover = self.cover.hoverProgress if hasattr(self, 'cover') else 0.0
+        if hover <= 0.001:
+            return
+        painter = QPainter(self)
+        painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
+        painter.setTransform(perspective_transform(self.card_tile_rect(), self.cover.pointer(), hover))
+        painter.setFont(self.caption.font())
+        painter.setPen(self.caption.darkColor if isDarkTheme() else self.caption.lightColor)
+        painter.drawText(QRectF(self.caption.geometry()), self.caption.alignment(), self.caption.text())
+        painter.end()
 
     def set_selection_mode(self, enabled: bool):
         self.selection_mode = enabled
@@ -98,17 +135,7 @@ class CoverCard(CardWidget):
         self.set_selected(not self.selected)
 
     def _load_cover(self):
-        if self.record.cover_path and os.path.exists(self.record.cover_path):
-            pixmap = QPixmap(self.record.cover_path)
-            if not pixmap.isNull():
-                scaled = pixmap.scaled(
-                    self.cover.size(),
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-                self.cover.setPixmap(scaled)
-                return
-        self.cover.setText('无封面')
+        self.cover.set_cover_path(self.record.cover_path)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.selection_mode:

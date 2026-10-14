@@ -71,7 +71,7 @@ JMComic Shelf 基于 `hect0x7/JMComic-Crawler-Python`，面向个人本地收藏
 - `repair_service.py`：书库修复流程，扫描历史残留图片目录，补全缺失 PDF，成功后清理原图片目录，并复用重建索引同步 SQLite 和 `catalog.md`。
 - `detail_service.py`：单个 JM 号详情查询，并为预览页缓存线上封面图。
 - `cover_cache.py`：完整封面缩略图缓存，不裁剪。
-- `ui/`：PySide6 + QFluentWidgets 页面，其中 `official_site_page.py` 负责“禁漫官网”分组卡片和系统浏览器跳转。
+- `ui/`：PySide6 + QFluentWidgets 页面，其中 `official_site_page.py` 负责“禁漫官网”分组卡片和系统浏览器跳转，`glass_cover.py` 负责书库封面的液态玻璃与透视倾斜绘制。
 
 书库页不能只读空 SQLite。必须在启动或 reload 时，从当前设置的下载目录递归扫描现有 PDF、根目录 `Cover/` 封面缓存和旧版漫画图片目录，再显示结果。
 书库作者分组标题和作品卡片标题应允许鼠标/键盘选中复制。批量管理默认提供“复制 PDF”操作，把已选且存在的 PDF 写入 Windows 文件剪贴板，用户可在电脑 QQ 中按 `Ctrl+V` 发送；同时提供“打包 ZIP”操作作为拖拽发送的备用方式，缺失 PDF 应在状态栏提示并跳过。
@@ -109,6 +109,7 @@ UI 必须保持：
 - 设置页类似 Windows 设置项：标题、说明、路径输入、按钮在同一 Fluent 卡片中。
 - 书库页以封面卡片网格展示作品，按作者分组。
 - 封面完整等比例显示，不裁剪、不截断。
+- 书库封面悬停时使用 `glass_cover.py` 的 `GlassCoverView` 呈现液态玻璃与最大 6° 的透视倾斜，标题文字用同一个 `perspective_transform` 绘制以保持同一平面；卡片背景框保持平面，调整倾角或方向只改该文件顶部常量。
 - 中文文案必须正常 UTF-8，不能提交乱码。
 
 参考项目：
