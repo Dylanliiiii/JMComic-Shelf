@@ -148,77 +148,46 @@ class TestShelfGlassCover(unittest.TestCase):
         self.assertEqual(card.caption.text(), 'JM211899 作品A')
         self.assertIsNotNone(app)
 
-    def test_caption_is_hidden_while_cover_is_hovered(self):
+    def test_caption_stays_flat_and_selectable_while_cover_is_hovered(self):
         app, view = self._view()
-        from jmcomic_shelf.models import AlbumRecord
-        from jmcomic_shelf.ui.library_page import CAPTION_HIDDEN_RULE, CoverCard
-
-        card = CoverCard(AlbumRecord('211899', '作品A'))
-        original = card.caption.styleSheet()
-        self.assertNotIn(CAPTION_HIDDEN_RULE, original)
-
-        card.cover.hoverProgress = 1.0
-
-        self.assertIn(CAPTION_HIDDEN_RULE, card.caption.styleSheet())
-
-        card.cover.hoverProgress = 0.0
-
-        self.assertEqual(card.caption.styleSheet(), original)
-        self.assertIsNotNone(app)
-
-    def test_card_tile_rect_matches_cover_view_geometry(self):
-        app, view = self._view()
-        from jmcomic_shelf.models import AlbumRecord
-        from jmcomic_shelf.ui.glass_cover import COVER_HEIGHT, COVER_WIDTH, TILE_PADDING
-        from jmcomic_shelf.ui.library_page import CoverCard
-
-        card = CoverCard(AlbumRecord('211899', '作品A'))
-        geometry = card.cover.geometry()
-        rect = card.card_tile_rect()
-
-        self.assertEqual(rect.left(), geometry.left() + TILE_PADDING)
-        self.assertEqual(rect.top(), geometry.top() + TILE_PADDING)
-        self.assertEqual(rect.width(), COVER_WIDTH)
-        self.assertEqual(rect.height(), COVER_HEIGHT)
-        self.assertIsNotNone(app)
-
-    def test_cover_and_caption_share_the_same_perspective(self):
-        app, view = self._view()
-        from PySide6.QtCore import QPointF
-        from jmcomic_shelf.models import AlbumRecord
-        from jmcomic_shelf.ui.glass_cover import TILE_PADDING, dip_quad
-        from jmcomic_shelf.ui.library_page import CoverCard
-
-        card = CoverCard(AlbumRecord('211899', '作品A'))
-        pointer = QPointF(-1.0, -1.0)
-        card.cover.hoverProgress = 1.0
-        card.cover.set_pointer(pointer.x(), pointer.y(), animated=False)
-
-        tile = card.card_tile_rect()
-        card_quad = dip_quad(tile, pointer, 1.0)
-        view_quad = card.cover.dip_quad()
-        offset = tile.topLeft() - QPointF(TILE_PADDING, TILE_PADDING)
-
-        for index in range(4):
-            self.assertAlmostEqual(card_quad[index].x(), view_quad[index].x() + offset.x(), places=6)
-            self.assertAlmostEqual(card_quad[index].y(), view_quad[index].y() + offset.y(), places=6)
-        self.assertNotEqual(card_quad, dip_quad(tile, pointer, 0.0))
-        self.assertIsNotNone(app)
-
-    def test_card_repaints_with_tilted_caption_on_hover(self):
-        app, view = self._view()
+        from PySide6.QtCore import Qt
         from jmcomic_shelf.models import AlbumRecord
         from jmcomic_shelf.ui.library_page import CoverCard
 
         card = CoverCard(AlbumRecord('211899', '作品A'))
-        idle = card.grab().toImage()
+        card.show()
+        app.processEvents()
+        original_style = card.caption.styleSheet()
+        idle_caption = card.caption.grab().toImage()
 
         card.cover.hoverProgress = 1.0
         card.cover.set_pointer(-1.0, -1.0, animated=False)
-        hovered = card.grab().toImage()
+        app.processEvents()
+        hovered_caption = card.caption.grab().toImage()
 
-        self.assertFalse(idle.isNull())
-        self.assertNotEqual(bytes(idle.constBits()), bytes(hovered.constBits()))
+        selectable = Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
+        self.assertEqual(card.caption.textInteractionFlags(), selectable)
+        self.assertEqual(card.caption.styleSheet(), original_style)
+        self.assertFalse(card.caption.isHidden())
+        self.assertEqual(bytes(idle_caption.constBits()), bytes(hovered_caption.constBits()))
+        self.assertIsNotNone(app)
+
+    def test_card_keeps_cover_tilt_without_touching_caption(self):
+        app, view = self._view()
+        from jmcomic_shelf.models import AlbumRecord
+        from jmcomic_shelf.ui.library_page import CoverCard
+
+        card = CoverCard(AlbumRecord('211899', '作品A'))
+        card.show()
+        app.processEvents()
+        idle_cover = card.cover.grab().toImage()
+
+        card.cover.hoverProgress = 1.0
+        card.cover.set_pointer(-1.0, -1.0, animated=False)
+        app.processEvents()
+        hovered_cover = card.cover.grab().toImage()
+
+        self.assertNotEqual(bytes(idle_cover.constBits()), bytes(hovered_cover.constBits()))
         self.assertIsNotNone(app)
 
     def test_cover_card_paints_no_background_frame(self):

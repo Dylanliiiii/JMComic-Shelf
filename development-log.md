@@ -1,5 +1,40 @@
 # Development Log
 
+## 2026-10-15 23:23:05 +08:00
+
+### 修改范围
+
+- 取消标题随封面倾斜的动效，标题改回固定在封面下方的静态文字。
+
+### 涉及文件
+
+- `src/jmcomic_shelf/ui/library_page.py`
+- `src/jmcomic_shelf/ui/glass_cover.py`
+- `tests/test_jmcomic/test_shelf_glass_cover.py`
+- `README.md`
+- `assets/readme/README-en.md`
+- `AGENTS.md`
+- `.agents/skills/jmcomic-shelf-project/SKILL.md`
+- `docs/superpowers/specs/2026-10-15-cover-liquid-glass-design.md`
+- `TASKS.md`
+- `development-log.md`
+
+### 具体内容
+
+- 用户反馈：倾斜到某些角度时标题会被遮住，要求文字不再跟随卡片，卡片只承担封面动效，文字单独放在下方。
+- 根因是自绘标题的先天限制：标题是 `CoverCard.paintEvent` 用透视变换画出来的，而绘制被卡片自身矩形裁剪；当指针在下方时，变换会把文字推出卡片边界，于是文字被切掉。
+- 处理方式：`CoverCard.paintEvent` 只保留批量选中描边，不再绘制文字；删除 `CAPTION_HIDDEN_RULE`、`set_caption_hidden`、`on_cover_view_changed`、`card_tile_rect` 以及悬停时把标签文字置为透明的逻辑。`CaptionLabel` 回到完全静态：样式表不改、始终可见、始终可选中复制。
+- `GlassCoverView` 的 `view_changed` 信号随之没有消费者，一并移除，保持模块边界干净；`dip_quad` / `perspective_transform` 仍作为透视数学保留，供瓦片自身使用。
+- 标题与瓦片之间的间距不变（布局间距 4px + 瓦片 9px 留白），瓦片倾斜时的最大外扩约 8px，不会压到标题。
+- 已同步 README、英文 README、AGENTS、项目专属 Skill 和 spec，删除“标题随封面一起倾斜”的描述，并写明原因；本次为普通功能调整，未更新项目版本号，也未发布 Release。
+
+### 验证情况
+
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest tests.test_jmcomic.test_shelf_glass_cover -v`，13 项通过；其中新增的 `test_caption_stays_flat_and_selectable_while_cover_is_hovered` 断言悬停时标题的离屏渲染结果与静止状态逐字节一致、样式表未变、仍可选中复制，`test_card_keeps_cover_tilt_without_touching_caption` 断言封面瓦片仍然倾斜。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m unittest discover -s tests -p 'test_shelf_*.py' -v`，92 项通过。
+- 已运行 `$env:PYTHONPATH='src;tests'; py -3.13 -m py_compile src\jmcomic_shelf\ui\glass_cover.py src\jmcomic_shelf\ui\library_page.py`，通过。
+- 已重新渲染深色与浅色主题的悬停效果图，确认三张卡片的标题都保持水平静止，只有封面瓦片倾斜。
+
 ## 2026-10-15 23:19:44 +08:00
 
 ### 修改范围

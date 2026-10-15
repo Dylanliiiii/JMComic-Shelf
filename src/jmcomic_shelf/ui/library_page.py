@@ -15,10 +15,9 @@ from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_sett
 from jmcomic_shelf.settings import ShelfSettings
 from jmcomic_shelf.share_service import create_pdf_archive, file_urls
 
-from .glass_cover import TILE_PADDING, GlassCoverView, perspective_transform
+from .glass_cover import GlassCoverView
 from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
-CAPTION_HIDDEN_RULE = 'FluentLabelBase { color: transparent; }'
 COVER_CARD_STYLE = 'CoverCard { background: transparent; border: none; }'
 
 
@@ -81,52 +80,19 @@ class CoverCard(CardWidget):
         self.caption.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
         )
-        self._caption_style = self.caption.styleSheet()
-        self._caption_hidden = False
-        self.cover.view_changed.connect(self.on_cover_view_changed)
 
         layout.addWidget(self.cover)
         layout.addWidget(self.caption)
 
-    def on_cover_view_changed(self):
-        """悬停时隐藏平面标题，改为随封面一起透视倾斜地绘制。"""
-        self.set_caption_hidden(self.cover.hoverProgress > 0.001)
-        self.update()
-
-    def set_caption_hidden(self, hidden: bool):
-        if hidden == self._caption_hidden:
-            return
-        self._caption_hidden = hidden
-        if hidden:
-            self.caption.setStyleSheet(self._caption_style + '\n' + CAPTION_HIDDEN_RULE)
-        else:
-            self.caption.setStyleSheet(self._caption_style)
-
-    def card_tile_rect(self):
-        """封面瓦片在卡片坐标系里的矩形，与外层瓦片控件的绘制范围一致。"""
-        geometry = self.cover.geometry()
-        return QRectF(geometry).adjusted(
-            TILE_PADDING, TILE_PADDING, -TILE_PADDING, -TILE_PADDING
-        )
-
     def paintEvent(self, event):
         # 故意不调用 CardWidget.paintEvent：封面卡片不要固定底板和外框，
         # 否则悬停倾斜时会出现一个不跟着动的方框。
+        # 标题不参与倾斜：倾斜后自绘文字会被卡片边界裁掉，所以标题始终是下面这个静态标签。
+        if not self.selected:
+            return
         painter = QPainter(self)
-        painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
-        if self.selected:
-            self._draw_selection(painter)
-        if not hasattr(self, 'cover'):
-            painter.end()
-            return
-        hover = self.cover.hoverProgress
-        if hover <= 0.001:
-            painter.end()
-            return
-        painter.setTransform(perspective_transform(self.card_tile_rect(), self.cover.pointer(), hover))
-        painter.setFont(self.caption.font())
-        painter.setPen(self.caption.darkColor if isDarkTheme() else self.caption.lightColor)
-        painter.drawText(QRectF(self.caption.geometry()), self.caption.alignment(), self.caption.text())
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self._draw_selection(painter)
         painter.end()
 
     def _draw_selection(self, painter: QPainter):

@@ -17,7 +17,6 @@ from PySide6.QtCore import (
     QSize,
     Qt,
     QVariantAnimation,
-    Signal,
 )
 from PySide6.QtGui import (
     QBrush,
@@ -104,8 +103,6 @@ def perspective_transform(rect: QRectF, pointer: QPointF, hover: float) -> QTran
 
 class GlassCoverView(QWidget):
     """把封面渲染成可随鼠标做透视倾斜的液态玻璃瓦片。"""
-
-    view_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -201,7 +198,6 @@ class GlassCoverView(QWidget):
     def _set_hover_progress(self, value: float):
         self._hover = float(value)
         self.update()
-        self.view_changed.emit()
 
     hoverProgress = Property(float, _get_hover_progress, _set_hover_progress)
 
@@ -250,7 +246,6 @@ class GlassCoverView(QWidget):
     def _apply_pointer(self, value):
         self._pointer = QPointF(value)
         self.update()
-        self.view_changed.emit()
 
     def _rounded_path(self, rect: QRectF, radius: float) -> QPainterPath:
         path = QPainterPath()

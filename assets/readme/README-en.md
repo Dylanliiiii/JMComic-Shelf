@@ -56,7 +56,7 @@ jmcomic-shelf
 - Search by JM ID, author, or tag.
 - Multi-tag category filtering.
 - Non-cropped cover thumbnails.
-- Hovering a cover tile adds a liquid-glass highlight and shadow, tilts the tile up to 6 degrees toward the pointer, and tilts the caption with it; the tile returns to flat as soon as the pointer leaves.
+- Hovering a cover tile adds a liquid-glass highlight and shadow, tilts the tile up to 6 degrees toward the pointer, and returns it to flat as soon as the pointer leaves; only the cover tile animates, while the caption below stays static and selectable.
 - Download task list with retry support.
 - Detail lookup for a single JM ID.
 - The Official JMComic page groups the release page, mirror domains, app download, and support contacts, opening links in the system browser.
