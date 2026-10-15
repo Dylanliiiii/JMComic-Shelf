@@ -22,6 +22,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QBrush,
     QColor,
+    QImage,
     QLinearGradient,
     QPainter,
     QPainterPath,
@@ -44,6 +45,13 @@ EYE_DISTANCE = 240.0
 HOVER_LIFT = 0.03
 TILT_DIRECTION = 1.0
 TILT_Y_DIRECTION = 1.0
+
+SHADOW_BLUR = 14.0
+SHADOW_ALPHA_DARK = 96
+SHADOW_ALPHA_LIGHT = 52
+SHADOW_OFFSET = 2.0
+SHADOW_HOVER_OFFSET = 3.0
+SHADOW_MIN_OPACITY = 0.55
 
 HOVER_IN_DURATION = 160
 HOVER_OUT_DURATION = 220
@@ -108,6 +116,8 @@ class GlassCoverView(QWidget):
         self._placeholder = '无封面'
         self._cache = None
         self._cache_key = None
+        self._shadow_cache = None
+        self._shadow_key = None
         self._hover = 0.0
         self._pointer = QPointF(0.0, 0.0)
 
@@ -220,12 +230,12 @@ class GlassCoverView(QWidget):
             QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform
         )
         rect = self.cover_rect()
-        quad = self.dip_quad()
-        self._draw_shadow(painter, quad)
-
+        painter.save()
         painter.setTransform(self.view_transform())
+        self._draw_shadow(painter, rect)
         painter.drawPixmap(rect.topLeft(), self._cover_layer())
         self._draw_glass(painter, rect)
+        painter.restore()
         painter.end()
 
     # ---------- 内部实现 ----------
@@ -309,15 +319,11 @@ class GlassCoverView(QWidget):
     def _edge_gradient(self, rect: QRectF, dark: bool, opacity: float) -> QLinearGradient:
         gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
         if dark:
-            stops = ((0.0, QColor(255, 255, 255)), (0.5, QColor(255, 255, 255)), (1.0, QColor(255, 255, 255)))
-            alphas = (96, 30, 12)
+            stops = ((0.0, 96), (0.5, 30), (1.0, 0))
         else:
-            stops = ((0.0, QColor(255, 255, 255)), (0.5, QColor(255, 255, 255)), (1.0, QColor(126, 114, 120)))
-            alphas = (230, 150, 90)
-        for (position, color), alpha in zip(stops, alphas):
-            color = QColor(color)
-            color.setAlpha(int(alpha * opacity))
-            gradient.setColorAt(position, color)
+            stops = ((0.0, 190), (0.5, 110), (1.0, 0))
+        for position, alpha in stops:
+            gradient.setColorAt(position, QColor(255, 255, 255, int(alpha * opacity)))
         return gradient
 
     def _draw_glass(self, painter: QPainter, rect: QRectF):
@@ -351,23 +357,70 @@ class GlassCoverView(QWidget):
         painter.setPen(QPen(rim, 1.4))
         painter.drawPath(path)
 
-    def _draw_shadow(self, painter: QPainter, quad: QPolygonF):
-        if quad.isEmpty():
-            return
+    def _shadow_pixmap(self) -> QPixmap:
+        """缓存模糊后的瓦片剪影，用作柔和投影；用模糊而不是描边，避免出现硬边灰线。"""
+        ratio = self.devicePixelRatioF() or 1.0
+        dark = isDarkTheme()
+        key = (dark, round(ratio, 2))
+        if self._shadow_cache is not None and self._shadow_key == key:
+            return self._shadow_cache
+
+        rect = self.cover_rect()
+        margin = SHADOW_BLUR
+        width = max(1, int((rect.width() + margin * 2) * ratio))
+        height = max(1, int((rect.height() + margin * 2) * ratio))
+        image = QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(0, 0, 0, SHADOW_ALPHA_DARK if dark else SHADOW_ALPHA_LIGHT))
+        painter.drawRoundedRect(
+            QRectF(
+                margin * ratio,
+                margin * ratio,
+                rect.width() * ratio,
+                rect.height() * ratio,
+            ),
+            TILE_RADIUS * ratio,
+            TILE_RADIUS * ratio,
+        )
+        painter.end()
+
+        small = image.scaled(
+            max(1, width // 6),
+            max(1, height // 6),
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        blurred = small.scaled(
+            width,
+            height,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        pixmap = QPixmap.fromImage(blurred)
+        pixmap.setDevicePixelRatio(ratio)
+        self._shadow_cache = pixmap
+        self._shadow_key = key
+        return pixmap
+
+    def _draw_shadow(self, painter: QPainter, rect: QRectF):
+        """在瓦片轮廓之外绘制柔和投影，瓦片内部不参与，避免封面留白处被压暗。"""
+        margin = SHADOW_BLUR
+        clip = QPainterPath()
+        clip.addRect(rect.adjusted(-margin * 2, -margin * 2, margin * 2, margin * 2))
+        clip = clip.subtracted(self._rounded_path(rect, TILE_RADIUS))
+
         hover = max(0.0, min(1.0, self._hover))
-        path = QPainterPath()
-        path.addPolygon(quad)
-        path.closeSubpath()
-
-        base = 78 if isDarkTheme() else 46
-        alpha = base * (0.35 + 0.65 * hover)
-        layers = ((3.0, 0.34), (7.0, 0.20), (12.0, 0.10))
-
         painter.save()
-        painter.translate(0.0, 2.0 + 3.0 * hover)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        for width, weight in layers:
-            color = QColor(0, 0, 0, int(alpha * weight))
-            painter.setPen(QPen(color, width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-            painter.drawPath(path)
+        painter.setClipPath(clip, Qt.ClipOperation.ReplaceClip)
+        painter.setOpacity(SHADOW_MIN_OPACITY + (1.0 - SHADOW_MIN_OPACITY) * hover)
+        painter.translate(0.0, SHADOW_OFFSET + SHADOW_HOVER_OFFSET * hover)
+        painter.drawPixmap(
+            QPointF(rect.left() - margin, rect.top() - margin),
+            self._shadow_pixmap(),
+        )
         painter.restore()

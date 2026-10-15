@@ -111,6 +111,7 @@ UI 必须保持：
 - 封面完整等比例显示，不裁剪、不截断。
 - 书库封面悬停时使用 `glass_cover.py` 的 `GlassCoverView` 呈现液态玻璃与最大 6° 的透视倾斜，标题文字用同一个 `perspective_transform` 绘制以保持同一平面；卡片背景框保持平面，调整倾角或方向只改该文件顶部常量。
 - 封面卡片必须保持无底板、无实线外框：`CoverCard.paintEvent` 不调用 `CardWidget.paintEvent`，并保留 `COVER_CARD_STYLE` 覆盖页面样式表里的 `CardWidget` 规则；批量选中描边由 `CoverCard._draw_selection` 自绘。
+- 封面投影必须用 `_shadow_pixmap` 的模糊剪影，并且只裁剪在瓦片外侧绘制；不要沿瓦片轮廓描边（浅色主题会变成跟着倾斜的硬边灰线），边缘高光渐变终点也必须是全透明。
 - 中文文案必须正常 UTF-8，不能提交乱码。
 
 参考项目：
