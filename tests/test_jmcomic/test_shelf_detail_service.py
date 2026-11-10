@@ -17,15 +17,17 @@ class TestShelfDetailService(unittest.TestCase):
         palette.setColor(QPalette.ColorRole.WindowText, QColor('white'))
         app.setPalette(palette)
         page = DetailPage()
-        page.info.setText('标题：测试作品\n作者：测试作者\n章节：1')
+        from jmcomic_shelf.models import AlbumRecord
+        page._add_card(AlbumRecord('123', '测试作品'))
+        title = page.cards.itemAt(0).widget().title
         page.show()
         try:
             for theme, expected in ((Theme.LIGHT, '#000000'), (Theme.DARK, '#ffffff'), (Theme.LIGHT, '#000000')):
                 with self.subTest(theme=theme):
                     setTheme(theme, lazy=False)
                     app.processEvents()
-                    self.assertEqual(page.info.palette().color(QPalette.ColorRole.WindowText).name(), expected)
-                    self.assertIn('作者：测试作者', page.info.text())
+                    self.assertEqual(title.palette().color(QPalette.ColorRole.WindowText).name(), expected)
+                    self.assertEqual(title.text(), '测试作品')
         finally:
             page.close()
             app.setPalette(original_palette)
@@ -121,115 +123,60 @@ class TestShelfDetailService(unittest.TestCase):
             self.assertEqual(result.cover_path, os.path.join(cover_cache_dir, 'JM211899.jpg'))
             self.assertTrue(os.path.exists(result.cover_path))
 
-    def test_detail_page_enter_key_triggers_query(self):
-        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-        from unittest.mock import patch
+    def test_parse_preview_ids_preserves_order_and_reports_invalid_tokens(self):
+        from jmcomic_shelf.detail_service import parse_preview_ids
+        self.assertEqual(
+            parse_preview_ids('0123，jm456 JM 789；JM123、坏编号\nＪＭ　９０１ 123abc 0'),
+            (['123', '456', '789', '901'], ['坏编号', '123abc', '0']),
+        )
 
-        from PySide6.QtWidgets import QApplication
-
-        from jmcomic_shelf.settings import ShelfSettings
-        from jmcomic_shelf.ui.detail_page import DetailPage
-
-        class Album:
-            album_id = '211899'
-            name = '作品A'
-            authors = ['作者A']
-            tags = []
-            episode_list = []
-
-        app = QApplication.instance() or QApplication([])
-        page = DetailPage()
-        page.input.setText('211899')
-
-        from jmcomic_shelf.detail_service import DetailResult
-
-        with patch('jmcomic_shelf.ui.detail_page.ShelfSettings.load', return_value=ShelfSettings(option_path='option.yml')):
-            with patch.object(page, '_sync_index'):
-                with patch.object(page, 'find_local_record', return_value=None):
-                    with patch('jmcomic_shelf.ui.detail_page.fetch_album_detail_result', return_value=DetailResult(Album())) as fetch:
-                        page.input.returnPressed.emit()
-
-        fetch.assert_called_once()
-        self.assertIsNotNone(app)
-
-    def test_detail_page_shows_searching_state_while_query_runs(self):
-        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
-
-        from unittest.mock import patch
-
-        from PySide6.QtWidgets import QApplication
-
-        from jmcomic_shelf.settings import ShelfSettings
-        from jmcomic_shelf.ui.detail_page import DetailPage
-
-        class Album:
-            album_id = '211899'
-            name = '作品A'
-            authors = ['作者A']
-            tags = []
-            episode_list = []
-
-        app = QApplication.instance() or QApplication([])
-        page = DetailPage()
-        page.input.setText('211899')
-
-        def fake_fetch(option_path, jm_id):
-            self.assertIn('正在搜索', page.info.text())
-            self.assertFalse(page.query_button.isEnabled())
-            return Album()
-
-        from jmcomic_shelf.detail_service import DetailResult
-
-        with patch('jmcomic_shelf.ui.detail_page.ShelfSettings.load', return_value=ShelfSettings(option_path='option.yml')):
-            with patch.object(page, '_sync_index'):
-                with patch.object(page, 'find_local_record', return_value=None):
-                    with patch('jmcomic_shelf.ui.detail_page.fetch_album_detail_result', side_effect=lambda *args: DetailResult(fake_fetch(*args[:2]))):
-                        page.load_detail()
-
-        self.assertTrue(page.query_button.isEnabled())
-        self.assertIn('标题：作品A', page.info.text())
-        self.assertIsNotNone(app)
-
-    def test_detail_page_shows_cover_above_detail_text(self):
-        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
-
+    def test_batch_query_shows_cards_and_reports_failures_at_end(self):
         import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
         from unittest.mock import patch
-
         from PIL import Image
+        from PySide6.QtTest import QTest
         from PySide6.QtWidgets import QApplication
-
+        from jmcomic.jm_exception import MissingAlbumPhotoException
         from jmcomic_shelf.detail_service import DetailResult
         from jmcomic_shelf.settings import ShelfSettings
         from jmcomic_shelf.ui.detail_page import DetailPage
 
-        class Album:
-            album_id = '211899'
-            name = '作品A'
-            authors = ['作者A']
-            tags = []
-            episode_list = []
-
         app = QApplication.instance() or QApplication([])
         page = DetailPage()
-        page.input.setText('211899')
-
+        page.show()
         with tempfile.TemporaryDirectory() as tmp:
-            cover_path = os.path.join(tmp, 'cover.jpg')
-            Image.new('RGB', (80, 120), 'green').save(cover_path)
-            settings = ShelfSettings(option_path='option.yml', app_data_dir=tmp)
+            cover = str(Path(tmp) / 'cover.jpg')
+            Image.new('RGB', (80, 120), 'green').save(cover)
+            def fetch(option, jm_id, cache, local_cover):
+                if jm_id == '2':
+                    raise MissingAlbumPhotoException('missing', {})
+                if jm_id == '3':
+                    raise OSError('连接超时')
+                album = SimpleNamespace(album_id=jm_id, name='作品' + jm_id, authors=['作者'],
+                                        tags=['标签一', '标签二'], episode_list=[])
+                return DetailResult(album, cover)
 
-            with patch('jmcomic_shelf.ui.detail_page.ShelfSettings.load', return_value=settings):
-                with patch.object(page, '_sync_index'):
-                    with patch.object(page, 'find_local_record', return_value=None):
-                        with patch(
-                            'jmcomic_shelf.ui.detail_page.fetch_album_detail_result',
-                            return_value=DetailResult(Album(), cover_path),
-                        ):
-                            page.load_detail()
-
-        self.assertFalse(page.cover.isHidden())
-        self.assertIsNotNone(page.cover.pixmap())
-        self.assertIn('标题：作品A', page.info.text())
-        self.assertIsNotNone(app)
+            with patch('jmcomic_shelf.ui.detail_page.ShelfSettings.load', return_value=ShelfSettings(app_data_dir=tmp)), \
+                 patch('jmcomic_shelf.ui.detail_page.fetch_album_detail_result', side_effect=fetch) as fetch_mock:
+                page.input.setText('1，jm2 JM 3、错误 JM4 jm1')
+                page.input.returnPressed.emit()
+                self.assertFalse(page.query_button.isEnabled())
+                import time
+                deadline = time.monotonic() + 5
+                while page.query is not None and time.monotonic() < deadline:
+                    QTest.qWait(10)
+                self.assertTrue(page.query_button.isEnabled())
+                self.assertEqual([call.args[1] for call in fetch_mock.call_args_list], ['1', '2', '3', '4'])
+                cards = [page.cards.itemAt(i).widget() for i in range(page.cards.count())]
+                self.assertEqual([c.title.text() for c in cards], ['作品1', '作品4'])
+                self.assertFalse(cards[0].cover.pixmap().isNull())
+                for msg in ['错误', 'JM2：作品不存在', 'JM3：查询失败，连接超时']:
+                    self.assertIn(msg, page.info.text())
+                page.input.setText('bad')
+                page.query_button.click()
+                self.assertEqual(page.cards.count(), 0)
+                self.assertIn('号码格式有误', page.info.text())
+        page.close()

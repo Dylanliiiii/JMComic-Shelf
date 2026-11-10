@@ -1,5 +1,25 @@
 import os
+import re
+import unicodedata
 from dataclasses import dataclass
+
+
+def parse_preview_ids(text: str) -> tuple[list[str], list[str]]:
+    """接受空白或常见标点分隔的编号，保留顺序并记录格式有误的输入。"""
+    from .download_service import parse_album_ids
+
+    text = unicodedata.normalize('NFKC', text)
+    text = re.sub(r'(?i)(?<=[0-9])(?=jm\s*[0-9])', ' ', text)
+    text = re.sub(r'(?i)\bjm\s+(?=[0-9])', 'JM', text)
+    text = re.sub(r'[;、|]+', ' ', text)
+    ids = []
+    invalid = []
+    for token in parse_album_ids(text):
+        if re.fullmatch(r'[0-9]+', token) and token.strip('0'):
+            ids.append(token.lstrip('0'))
+        else:
+            invalid.append(token)
+    return list(dict.fromkeys(ids)), list(dict.fromkeys(invalid))
 
 
 @dataclass
