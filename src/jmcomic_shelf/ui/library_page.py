@@ -45,6 +45,7 @@ class IndexSyncWorker(QObject):
 
 class CoverCard(CardWidget):
     selection_changed = Signal(str, bool)
+    delete_requested = Signal(object)
     cover_width = 150
     card_width = 178
     border_width = 2
@@ -147,7 +148,10 @@ class CoverCard(CardWidget):
         reveal_action.setEnabled(exists)
         menu.addAction(open_action)
         menu.addAction(reveal_action)
-        menu.exec(event.globalPos())
+        menu.addSeparator()
+        delete_action = menu.addAction('删除这本漫画…')
+        if menu.exec(event.globalPos()) is delete_action:
+            self.delete_requested.emit(self.record)
 
 
 class LibraryPage(QWidget):
@@ -439,6 +443,7 @@ class LibraryPage(QWidget):
                 card.set_selection_mode(self.batch_mode)
                 card.set_selected(record.jm_id in self.selected_ids, emit=False)
                 card.selection_changed.connect(self.on_card_selection_changed)
+                card.delete_requested.connect(self.delete_one)
                 grid.addWidget(card, index // columns, index % columns, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             for column in range(columns):
                 grid.setColumnMinimumWidth(column, CoverCard.card_width)
@@ -647,13 +652,21 @@ class LibraryPage(QWidget):
         self.invert_button.setEnabled(has_records)
         self.clear_selection_button.setEnabled(count > 0)
 
+    def delete_one(self, record):
+        self._delete_records([record])
+
     def delete_selected(self):
-        records = [record for record in self.records if record.jm_id in self.selected_ids]
+        self._delete_records(self._selected_records())
+
+    def _delete_records(self, records):
         if not records:
             return
+        target = f'所选 {len(records)} 本漫画'
+        if len(records) == 1:
+            target = f'《{records[0].title}》（JM{records[0].jm_id}）'
         box = MessageBox(
             '确认删除本地漫画',
-            f'此操作会删除所选 {len(records)} 本漫画对应的本地文件，包括漫画目录、PDF 文件和桌面端数据库索引。\n\n删除后无法从应用内撤销，确认继续吗？',
+            f'将删除{target}的本地 PDF、作品目录和书库索引。\n\n删除后无法从应用内撤销，确认继续吗？',
             self,
         )
         box.yesButton.setText('确认删除')
@@ -669,12 +682,13 @@ class LibraryPage(QWidget):
             db.delete_albums([record.jm_id for record in records])
         finally:
             db.close()
-        self.selected_ids.clear()
+        self.selected_ids.difference_update(record.jm_id for record in records)
         self.reload()
         messages = [f'已删除 {len(records)} 本漫画的本地文件和书库索引。']
         if result.skipped_paths:
-            messages.append(f'有 {len(result.skipped_paths)} 个路径不在下载目录内，已跳过。')
+            messages.append('已保留共享目录或下载目录以外的路径。')
         if result.errors:
+            messages[0] = '书库已刷新。'
             messages.append('部分文件删除失败：' + '；'.join(result.errors[:3]))
         self.action_status.setText(' '.join(messages))
         self.action_status.setVisible(True)

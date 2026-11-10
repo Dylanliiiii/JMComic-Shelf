@@ -5,6 +5,61 @@ from unittest.mock import patch
 
 class TestShelfLibraryPage(unittest.TestCase):
 
+    def test_context_delete_targets_only_the_clicked_album(self):
+        from pathlib import Path
+        from PySide6.QtCore import QEvent, QPoint
+        from PySide6.QtGui import QContextMenuEvent
+        from PySide6.QtWidgets import QApplication, QMenu
+        from jmcomic_shelf.settings import ShelfSettings
+        from jmcomic_shelf.ui.library_page import CoverCard, LibraryPage
+
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        app = QApplication.instance() or QApplication([])
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'downloads'
+            author = root / '作者'
+            author.mkdir(parents=True)
+            target = author / 'JM101-第一本.pdf'
+            other = author / 'JM102-第二本.pdf'
+            for pdf in (target, other):
+                pdf.write_bytes(b'pdf')
+            settings = ShelfSettings(download_dir=str(root), app_data_dir=tmp)
+            with patch('jmcomic_shelf.ui.library_page.ShelfSettings.load', return_value=settings):
+                page = LibraryPage()
+                page.show()
+                app.processEvents()
+
+                class ChooseDeleteMenu(QMenu):
+                    def exec(self, pos):
+                        return next(action for action in self.actions() if action.text() == '删除这本漫画…')
+
+                def right_click_target():
+                    card = next(card for card in page.findChildren(CoverCard)
+                                if card.record.jm_id == '101' and card.isVisible())
+                    pos = QPoint(10, 10)
+                    event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, pos, card.cover.mapToGlobal(pos))
+                    QApplication.sendEvent(card.cover, event)
+
+                with patch('jmcomic_shelf.ui.library_page.QMenu', ChooseDeleteMenu), patch('jmcomic_shelf.ui.library_page.MessageBox') as box:
+                    box.return_value.exec.return_value = False
+                    right_click_target()
+                    self.assertIn('第一本', box.call_args.args[1])
+                    self.assertIn('JM101', box.call_args.args[1])
+                    self.assertTrue(target.exists())
+                    self.assertFalse(page.batch_mode)
+
+                    page.set_batch_mode(True)
+                    page.on_card_selection_changed('102', True)
+                    app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+                    app.processEvents()
+                    box.return_value.exec.return_value = True
+                    right_click_target()
+                    self.assertFalse(target.exists())
+                    self.assertTrue(other.exists())
+                    self.assertEqual(page.selected_ids, {'102'})
+                    self.assertEqual([record.jm_id for record in page.records], ['102'])
+                page.close()
+
     def test_return_to_all_without_filter_preserves_cards_and_scroll(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
         from PySide6.QtWidgets import QApplication

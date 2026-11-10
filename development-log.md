@@ -1,5 +1,10 @@
 # Development Log
 
+## 2026-11-11 06:08:52 +0800
+
+- 书库封面右键菜单提供单本删除，确认框显示书名和 JM 号。复用批量删除及书库刷新流程，保留其它书的勾选状态。变更涉及 library_page.py、页面测试和 README。
+- 已用临时书库验证取消、确认、文件保留与索引刷新，95 项桌面测试及编译检查通过。已核对协作说明、项目技能、设计及计划，原有删除规则仍适用。未更新项目版本号，也未发布 Release。
+
 ## 2026-11-11 06:02:19 +0800
 
 - 将 back_to_top.py 的青色填充与描边替换为无色透明玻璃，背景仅在弯曲边缘局部取样折射。边缘高光跟随指针，黑白箭头按下层明暗调整。参考 Apple 的 clear Liquid Glass 材质说明：https://developer.apple.com/design/human-interface-guidelines/materials 。
