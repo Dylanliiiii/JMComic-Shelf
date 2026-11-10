@@ -12,6 +12,11 @@ from jmcomic_shelf.file_actions import open_pdf, reveal_in_explorer
 from jmcomic_shelf.path_utils import path_exists
 
 
+# 让链接背景伸入正文左侧的留白，同时保持正文与封面的原始位置。
+LINK_PADDING = 8
+CARD_MARGIN = 22
+
+
 class PreviewCard(QWidget):
     def __init__(self, record, parent=None):
         super().__init__(parent)
@@ -21,9 +26,10 @@ class PreviewCard(QWidget):
         self.sweep.valueChanged.connect(self._set_progress)
 
         self.row = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
-        self.row.setContentsMargins(22, 20, 22, 20)
-        self.row.setSpacing(22)
+        self.row.setContentsMargins(CARD_MARGIN - LINK_PADDING, 20, CARD_MARGIN, 20)
+        self.row.setSpacing(CARD_MARGIN - LINK_PADDING)
         self.cover = QLabel(self)
+        self.cover.setContentsMargins(LINK_PADDING, 0, 0, 0)
         image = QPixmap(record.cover_path) if record.cover_path else QPixmap()
         if not image.isNull():
             self.cover.setPixmap(image.scaled(190, 245, Qt.AspectRatioMode.KeepAspectRatio,
@@ -32,9 +38,13 @@ class PreviewCard(QWidget):
         else:
             self.cover.hide()
 
+        column = QVBoxLayout()
+        column.setSpacing(8)
+        self.row.addLayout(column, 1)
         details = QVBoxLayout()
+        details.setContentsMargins(LINK_PADDING, 0, 0, 0)
         details.setSpacing(8)
-        self.row.addLayout(details, 1)
+        column.addLayout(details)
         details.addWidget(CaptionLabel(f'JM{record.jm_id}   ·   共 {len(record.chapters)} 章', self))
         self.title = SubtitleLabel(self)
         self.title.setTextFormat(Qt.TextFormat.PlainText)
@@ -68,15 +78,15 @@ class PreviewCard(QWidget):
                 tags.addWidget(chip)
             details.addWidget(tag_host)
 
-        details.addStretch(1)
+        column.addStretch(1)
         action_host = QWidget(self)
         actions = FlowLayout(action_host)
-        actions.setContentsMargins(0, 4, 0, 0)
+        actions.setContentsMargins(0 if record.link else LINK_PADDING, 4, 0, 0)
         actions.setHorizontalSpacing(8)
         actions.setVerticalSpacing(6)
         if record.link:
             link = HyperlinkButton(record.link, '查看作品页 ↗', action_host)
-            link_style = 'HyperlinkButton[hasIcon=false] { padding-left: 0px; text-align: left; }'
+            link_style = f'HyperlinkButton[hasIcon=false] {{ padding: 6px {LINK_PADDING}px; }}'
             setCustomStyleSheet(link, link_style, link_style)
             link.setToolTip(record.link)
             actions.addWidget(link)
@@ -85,13 +95,14 @@ class PreviewCard(QWidget):
                 button = PushButton(text, action_host)
                 button.clicked.connect(lambda checked=False, fn=action: fn(record.pdf_path))
                 actions.addWidget(button)
-        details.addWidget(action_host)
+        column.addWidget(action_host)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         direction = QBoxLayout.Direction.TopToBottom if self.width() < 560 else QBoxLayout.Direction.LeftToRight
         if self.row.direction() != direction:
             self.row.setDirection(direction)
+            self.row.setSpacing(CARD_MARGIN if direction == QBoxLayout.Direction.TopToBottom else CARD_MARGIN - LINK_PADDING)
             self.updateGeometry()
 
     def enterEvent(self, event):
