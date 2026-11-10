@@ -76,6 +76,8 @@ class PreviewCard(QWidget):
         actions.setVerticalSpacing(6)
         if record.link:
             link = HyperlinkButton(record.link, '查看作品页 ↗', action_host)
+            link_style = 'HyperlinkButton[hasIcon=false] { padding-left: 0px; text-align: left; }'
+            setCustomStyleSheet(link, link_style, link_style)
             link.setToolTip(record.link)
             actions.addWidget(link)
         if record.pdf_path and path_exists(record.pdf_path):
