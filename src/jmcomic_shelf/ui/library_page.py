@@ -15,6 +15,7 @@ from jmcomic_shelf.paths import get_cover_cache_dir, get_database_path, get_sett
 from jmcomic_shelf.settings import ShelfSettings
 from jmcomic_shelf.share_service import create_pdf_archive, file_urls
 
+from .back_to_top import BackToTopButton
 from .glass_cover import GlassCoverView
 from .styles import TRANSPARENT_SCROLL_STYLE, apply_page_style
 
@@ -277,6 +278,7 @@ class LibraryPage(QWidget):
         self.content_layout.setContentsMargins(0, 0, 14, 0)
         self.content_layout.setSpacing(16)
         self.scroll.setWidget(self.content)
+        self.back_to_top = BackToTopButton(self.scroll)
 
         layout.addWidget(title)
         layout.addWidget(self.search_input)
