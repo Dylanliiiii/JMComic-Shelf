@@ -293,6 +293,13 @@ class LibraryPage(QWidget):
         self.reload()
 
     def clear_filter(self):
+        # 仅收起分类时复用当前书架；真实筛选或待执行的搜索仍需恢复全部结果。
+        needs_reload = bool(
+            self.active_tags
+            or self.search_input.text().strip()
+            or self.search_timer.isActive()
+            or self.load_error
+        )
         self.category_host.hide()
         self.active_tags.clear()
         self.active_filter = 'all'
@@ -300,7 +307,9 @@ class LibraryPage(QWidget):
         self.search_input.blockSignals(True)
         self.search_input.clear()
         self.search_input.blockSignals(False)
-        self.reload(sync_index=False)
+        self.update_filter_buttons()
+        if needs_reload:
+            self.reload(sync_index=False)
 
     def on_search_changed(self):
         self.category_host.hide()

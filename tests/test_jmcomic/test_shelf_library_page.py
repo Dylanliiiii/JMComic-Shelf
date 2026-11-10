@@ -5,6 +5,59 @@ from unittest.mock import patch
 
 class TestShelfLibraryPage(unittest.TestCase):
 
+    def test_return_to_all_without_filter_preserves_cards_and_scroll(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.models import AlbumRecord
+        from jmcomic_shelf.ui.library_page import CoverCard, LibraryPage
+
+        app = QApplication.instance() or QApplication([])
+        with patch.object(LibraryPage, 'reload'):
+            page = LibraryPage()
+        page.records = [AlbumRecord(str(i), '作品', authors=['作者']) for i in range(30)]
+        page.render_records()
+        page.resize(800, 600)
+        page.show()
+        app.processEvents()
+        cards = page.findChildren(CoverCard)
+        page.scroll.verticalScrollBar().setValue(100)
+        page.category_button.click()
+        with patch.object(page, 'reload') as reload:
+            page.all_filter_button.click()
+        reload.assert_not_called()
+        self.assertTrue(page.category_host.isHidden())
+        self.assertEqual(page.findChildren(CoverCard), cards)
+        self.assertEqual(page.scroll.verticalScrollBar().value(), 100)
+        page.close()
+
+    def test_return_to_all_reloads_filtered_or_pending_results(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        from PySide6.QtWidgets import QApplication
+        from jmcomic_shelf.ui.library_page import LibraryPage
+
+        app = QApplication.instance() or QApplication([])
+        for mode in ('tag', 'query', 'pending', 'error'):
+            with self.subTest(mode=mode):
+                with patch.object(LibraryPage, 'reload'):
+                    page = LibraryPage()
+                if mode == 'tag':
+                    page.active_tags.add('标签')
+                elif mode == 'query':
+                    page.search_input.setText('作者')
+                elif mode == 'pending':
+                    page.search_timer.start()
+                else:
+                    page.load_error = '读取失败'
+                with patch.object(page, 'reload') as reload:
+                    page.all_filter_button.click()
+                reload.assert_called_once_with(sync_index=False)
+                self.assertFalse(page.active_tags)
+                self.assertEqual(page.search_input.text(), '')
+                self.assertFalse(page.search_timer.isActive())
+                page.close()
+        self.assertIsNotNone(app)
+
+
     def test_library_text_labels_allow_selection_and_batch_share_buttons_are_available(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
