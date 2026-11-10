@@ -3,7 +3,7 @@ from datetime import datetime
 
 from PySide6.QtCore import QMimeData, QObject, QRectF, Qt, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QColor, QGuiApplication, QPainter, QPen
-from PySide6.QtWidgets import QFileDialog, QFrame, QGridLayout, QHBoxLayout, QMenu, QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QFrame, QGridLayout, QHBoxLayout, QMenu, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, CheckBox, LineEdit, MessageBox, PrimaryPushButton, PushButton, SmoothScrollArea, SubtitleLabel, TitleLabel, isDarkTheme
 
 from jmcomic_shelf.database import ShelfDatabase
@@ -202,7 +202,9 @@ class LibraryPage(QWidget):
         self.category_button = PushButton('分类', self)
         self.category_button.clicked.connect(self.toggle_category_panel)
         for button in (self.all_filter_button, self.category_button):
-            button.setFixedSize(104, 48)
+            button.setMinimumWidth(104)
+            button.setFixedHeight(48)
+            button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self.batch_button = PushButton('批量管理', self)
         self.batch_button.clicked.connect(self.toggle_batch_mode)
@@ -218,11 +220,10 @@ class LibraryPage(QWidget):
         self.category_host.setStyleSheet(self._filter_host_style())
         category_host_layout = QVBoxLayout(self.category_host)
         category_host_layout.setContentsMargins(0, 0, 0, 0)
-        self.category_scroll = QScrollArea(self.category_host)
+        self.category_scroll = SmoothScrollArea(self.category_host)
         self.category_scroll.setWidgetResizable(True)
         self.category_scroll.setFrameShape(self.category_scroll.Shape.NoFrame)
         self.category_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.category_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.category_scroll.setStyleSheet(TRANSPARENT_SCROLL_STYLE)
         self.category_scroll.setMaximumHeight(self._category_max_height())
         self.category_content = QWidget(self.category_scroll)
@@ -232,7 +233,6 @@ class LibraryPage(QWidget):
         self.category_layout.setHorizontalSpacing(self.tag_grid_spacing)
         self.category_layout.setVerticalSpacing(self.tag_grid_spacing)
         self.category_scroll.setWidget(self.category_content)
-        self.category_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         category_host_layout.addWidget(self.category_scroll)
         self.category_host.setVisible(False)
 
@@ -293,6 +293,7 @@ class LibraryPage(QWidget):
         self.reload()
 
     def clear_filter(self):
+        self.category_host.hide()
         self.active_tags.clear()
         self.active_filter = 'all'
         self.search_timer.stop()
@@ -302,6 +303,7 @@ class LibraryPage(QWidget):
         self.reload(sync_index=False)
 
     def on_search_changed(self):
+        self.category_host.hide()
         if self.active_tags:
             self.active_tags.clear()
         self.active_filter = 'all'
@@ -438,10 +440,11 @@ class LibraryPage(QWidget):
         self.update_batch_actions()
 
     def toggle_category_panel(self):
-        self.category_host.setVisible(not self.category_host.isVisible())
-        self.active_filter = 'category' if self.category_host.isVisible() else 'all'
+        opening = self.category_host.isHidden()
+        self.category_host.setVisible(opening)
+        self.active_filter = 'category' if opening else 'all'
         self.update_filter_buttons()
-        if self.category_host.isVisible():
+        if opening:
             self.render_tag_buttons()
 
     def toggle_tag_filter(self, tag: str):
@@ -513,7 +516,7 @@ class LibraryPage(QWidget):
             f'background: {background};'
             f'color: {color};'
             f'border: 1px solid {border};'
-            'border-bottom: 3px solid #00c8d7;'
+            f'border-bottom: 3px solid {"#00c8d7" if active else border};'
             'border-radius: 8px;'
             'font-size: 14px;'
             'font-weight: 600;'

@@ -142,20 +142,23 @@ class TestShelfLibraryPage(unittest.TestCase):
     def test_category_panel_is_limited_to_five_rows_and_scrolls(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-        from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QApplication
+        from qfluentwidgets import SmoothScrollArea
         from jmcomic_shelf.ui.library_page import LibraryPage
 
         app = QApplication.instance() or QApplication([])
         page = LibraryPage()
         page.available_tags = [f'标签{i}' for i in range(60)]
         page.toggle_category_panel()
+        page.show()
+        app.processEvents()
 
         expected_height = page.tag_button_height * 5 + page.tag_grid_spacing * 4 + page.tag_grid_vertical_margins
-        self.assertEqual(page.category_scroll.verticalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.assertIsInstance(page.category_scroll, SmoothScrollArea)
+        self.assertGreater(page.category_scroll.verticalScrollBar().maximum(), 0)
         self.assertEqual(page.category_scroll.maximumHeight(), expected_height)
         self.assertFalse(page.category_scroll.isHidden())
-        self.assertIsNotNone(app)
+        page.close()
 
     def test_tag_filter_keeps_existing_tag_buttons(self):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
@@ -198,7 +201,9 @@ class TestShelfLibraryPage(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         page = LibraryPage()
 
+        page.all_filter_button.setText('全部 · 147 本')
         page.all_filter_button.adjustSize()
+        self.assertGreaterEqual(page.all_filter_button.width(), page.all_filter_button.fontMetrics().horizontalAdvance(page.all_filter_button.text()) + 28)
         page.category_button.adjustSize()
 
         self.assertEqual(page.category_button.font().pointSize(), page.all_filter_button.font().pointSize())
@@ -207,6 +212,11 @@ class TestShelfLibraryPage(unittest.TestCase):
         self.assertIn('border-bottom: 3px solid #00c8d7', page.all_filter_button.styleSheet())
         page.toggle_category_panel()
         self.assertIn('border-bottom: 3px solid #00c8d7', page.category_button.styleSheet())
+        self.assertNotIn('border-bottom: 3px solid #00c8d7', page.all_filter_button.styleSheet())
+        page.active_tags.add('标签')
+        page.all_filter_button.click()
+        self.assertTrue(page.category_host.isHidden())
+        self.assertFalse(page.active_tags)
         self.assertIsNotNone(app)
 
     def test_main_window_uses_lightweight_library_activation_reload(self):
