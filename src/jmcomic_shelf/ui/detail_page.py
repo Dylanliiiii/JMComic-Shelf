@@ -43,10 +43,9 @@ class DetailPage(QWidget):
         self.cover.setStyleSheet('background: transparent; border-radius: 6px;')
         self.cover.hide()
 
-        self.info = QLabel('尚未查询', self)
+        self.info = BodyLabel('尚未查询', self)
         self.info.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.info.setWordWrap(True)
-        self.info.setStyleSheet('background: transparent;')
 
         note = BodyLabel('查询单个 JM 号的线上详情；如果书库索引里已有本地 PDF，可直接打开或定位文件。', self)
         note.setWordWrap(True)

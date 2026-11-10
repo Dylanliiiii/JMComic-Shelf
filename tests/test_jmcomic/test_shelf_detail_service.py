@@ -3,6 +3,35 @@ from test_jmcomic import *
 
 class TestShelfDetailService(unittest.TestCase):
 
+    def test_detail_text_follows_app_theme_with_light_system_text(self):
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        from PySide6.QtGui import QColor, QPalette
+        from PySide6.QtWidgets import QApplication
+        from qfluentwidgets import Theme, qconfig, setTheme
+        from jmcomic_shelf.ui.detail_page import DetailPage
+
+        app = QApplication.instance() or QApplication([])
+        original_palette = app.palette()
+        original_theme = qconfig.theme
+        palette = QPalette(original_palette)
+        palette.setColor(QPalette.ColorRole.WindowText, QColor('white'))
+        app.setPalette(palette)
+        page = DetailPage()
+        page.info.setText('标题：测试作品\n作者：测试作者\n章节：1')
+        page.show()
+        try:
+            for theme, expected in ((Theme.LIGHT, '#000000'), (Theme.DARK, '#ffffff'), (Theme.LIGHT, '#000000')):
+                with self.subTest(theme=theme):
+                    setTheme(theme, lazy=False)
+                    app.processEvents()
+                    self.assertEqual(page.info.palette().color(QPalette.ColorRole.WindowText).name(), expected)
+                    self.assertIn('作者：测试作者', page.info.text())
+        finally:
+            page.close()
+            app.setPalette(original_palette)
+            setTheme(original_theme, lazy=False)
+
+
     def test_fetch_album_detail_requires_option_path(self):
         from jmcomic_shelf.detail_service import fetch_album_detail
 
