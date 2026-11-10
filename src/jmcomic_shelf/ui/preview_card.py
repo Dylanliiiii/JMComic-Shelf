@@ -1,7 +1,7 @@
 """预览结果卡：封面、作品资料和本地操作。"""
 
 from PySide6.QtCore import QEasingCurve, QRectF, Qt, QVariantAnimation
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel, CaptionLabel, FlowLayout, HyperlinkButton, PushButton,
@@ -15,6 +15,7 @@ from jmcomic_shelf.path_utils import path_exists
 # 让链接背景伸入正文左侧的留白，同时保持正文与封面的原始位置。
 LINK_PADDING = 8
 CARD_MARGIN = 22
+HOVER_SWEEP_MS = 250
 
 
 class PreviewCard(QWidget):
@@ -22,7 +23,7 @@ class PreviewCard(QWidget):
         super().__init__(parent)
         self.progress = 0.0
         self.sweep = QVariantAnimation(self)
-        self.sweep.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.sweep.setEasingCurve(QEasingCurve.Type.Linear)
         self.sweep.valueChanged.connect(self._set_progress)
 
         self.row = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
@@ -117,7 +118,7 @@ class PreviewCard(QWidget):
         self.sweep.stop()
         self.sweep.setStartValue(self.progress)
         self.sweep.setEndValue(target)
-        self.sweep.setDuration(max(1, round(190 * abs(target - self.progress))))
+        self.sweep.setDuration(max(1, round(HOVER_SWEEP_MS * abs(target - self.progress))))
         self.sweep.start()
 
     def _set_progress(self, value):
@@ -133,11 +134,14 @@ class PreviewCard(QWidget):
         outline = QPainterPath()
         outline.addRoundedRect(rect, 11, 11)
         painter.fillPath(outline, QColor('#342c30' if dark else '#ffffff'))
-        painter.save()
-        painter.setClipPath(outline)
-        tint = QColor('#00b8c6')
-        tint.setAlpha(25 if dark else 16)
-        painter.fillRect(QRectF(rect.left(), rect.top(), rect.width() * self.progress, rect.height()), tint)
-        painter.restore()
+        # 移动渐变的位置，让已经扫过的区域保留淡青色，前沿完全越过右边后再收住。
+        band = min(96.0, rect.width() * 0.16)
+        if self.progress > 0 and band > 0:
+            front = rect.left() + (rect.width() + band) * self.progress
+            sweep = QLinearGradient(front - band, 0, front, 0)
+            sweep.setColorAt(0, QColor(0, 184, 198, 25 if dark else 16))
+            sweep.setColorAt(0.55, QColor(0, 184, 198, 52 if dark else 33))
+            sweep.setColorAt(1, QColor(0, 184, 198, 0))
+            painter.fillPath(outline, sweep)
         painter.setPen(QPen(QColor('#51434b' if dark else '#e5dce0'), 1))
         painter.drawPath(outline)
