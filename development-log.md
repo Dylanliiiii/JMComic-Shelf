@@ -7,6 +7,7 @@
 - 书库支持右键封面并确认删除单本漫画，向下滚动时可一键返回顶部。修复分类面板收起与计数显示问题，减少返回全部作品时的重复加载。
 - 更新 `src/jmcomic_shelf/__init__.py`、`TASKS.md` 和 `development-log.md`。已核对 README、协作说明、项目技能、设计和实施计划，本次沿用已有说明与发布流程。
 - 95 项桌面回归测试通过。已检查相关模块编译、桌面版本号、打包入口和图标，并确认本地私有配置受 Git 忽略。
+- 发布提交 `d45bfe6` 已推送。Windows 构建成功，GitHub 最新正式版为 `v0.7.0`，完整安装包、在线安装包、ZIP 和 SHA-256 校验文件均已上传。发布页：https://github.com/Dylanliiiii/JMComic-Shelf/releases/tag/v0.7.0
 
 ## 2026-11-11 06:10:50 +0800
 
